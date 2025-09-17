@@ -62,7 +62,7 @@ spec:
                   for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
                   for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
                   git clone https://github.com/IamNirmata/Distrbuted_training_tools.git /opt/Distrbuted_training_tools
-                  sleep 60
+                  # sleep 60
                   echo "#########################Hostfile#########################"
                   cat /opt/hostfile
                   echo "##########################################################"
@@ -141,6 +141,7 @@ spec:
                   echo "#########################Hostfile#########################"
                   cat /opt/hostfile
                   echo "##########################################################"
+                  git clone https://github.com/IamNirmata/Distrbuted_training_tools.git /opt/Distrbuted_training_tools
                   sleep 6000
                   echo "Client done."
               resources:
