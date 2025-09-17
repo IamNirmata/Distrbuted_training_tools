@@ -14,7 +14,7 @@ export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
 export LOCAL_WORLD="${LOCAL_WORLD:-$NPERNODE}"
 
 APP_CMD=(
-  python ~/npairs/npairs.py
+  python /home/hari/b200/Distrbuted_training_tools/npairs.py
 )
 # ------------------------------------------------------------------
 
@@ -45,7 +45,7 @@ fi
 
 echo "Loaded $N nodes from $HOSTFILE"
 # Optional: show them
-# printf '  %s\n' "${NODES[@]}"
+printf '  %s\n' "${NODES[@]}"
 
 # 2) Generate the per-round all-pair schedule and load into combinations[]
 #    We strip the leading spaces and surrounding quotes to get a clean line.
@@ -66,6 +66,11 @@ if (( ${#combinations[@]} == 0 )); then
 fi
 
 echo "Schedule has ${#combinations[@]} rounds; ~$(($N/2)) pairs per round."
+
+# print all combinations (optional)
+for combo in "${combinations[@]}"; do
+  echo "  $combo"
+done
 
 # -------------------------- RUN ROUNDS --------------------------
 round_idx=0
@@ -92,7 +97,8 @@ for combo in "${combinations[@]}"; do
     j="${idx[1]}"
     node1="${NODES[$i]}"
     node2="${NODES[$j]}"
-
+    # print node names for debugging
+    echo "  Pair: $i($node1) & $j($node2)"
     if [[ -z "${node1:-}" || -z "${node2:-}" ]]; then
       echo "WARN: index out of range in pair '$pair' (skipping)" >&2
       continue
@@ -101,21 +107,29 @@ for combo in "${combinations[@]}"; do
     # Unique-ish port per job in a round (not strictly required since nodes
     # do not repeat within a round, but keeps things tidy)
     master_port=$((MASTER_PORT_BASE + job_idx))
+    echo "    Master port: $master_port"
 
     log_file="${LOGDIR}/round${round_idx}_job${job_idx}_${node1}--${node2}.log"
     echo "Launching Job${job_idx}: $node1 & $node2  -> $log_file"
 
+
     # Kick off MPI job in background
-    mpirun --tag-output --display-map --allow-run-as-root \
-      -np "$NP_TOTAL" \
-      -H "${node1}:${NPERNODE},${node2}:${NPERNODE}" \
-      -x LOCAL_WORLD \
-      -x NCCL_DEBUG \
-      -x MASTER_ADDR="${node1}" \
-      -x MASTER_PORT="${master_port}" \
-      ${EXTRA_MPI_ARGS} \
-      "${APP_CMD[@]}" \
-      >"$log_file" 2>&1 &
+    mp_cmd=(
+      mpirun --tag-output --display-map --allow-run-as-root
+      -np "$NP_TOTAL"
+      -H "${node1}:${NPERNODE},${node2}:${NPERNODE}"
+      -x LOCAL_WORLD
+      -x NCCL_DEBUG
+      -x MASTER_ADDR="${node1}"
+      -x MASTER_PORT="${master_port}"
+      ${EXTRA_MPI_ARGS}
+      "${APP_CMD[@]}"
+    )
+
+    # Optionally show the command:
+    echo "    Running: ${mp_cmd[*]}"
+
+    "${mp_cmd[@]}" >"$log_file" 2>&1 &
 
     pids+=($!)
     ((job_idx++))

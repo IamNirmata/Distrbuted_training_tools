@@ -1,0 +1,10 @@
+    multinode-ddp-allreduce-mpi-l8h6q-server-0.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-0.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-1.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-2.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-3.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-4.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-5.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-6.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-7.multinode-ddp-allreduce-mpi-l8h6q slots=8
+    multinode-ddp-allreduce-mpi-l8h6q-client-8.multinode-ddp-allreduce-mpi-l8h6q slots=8
