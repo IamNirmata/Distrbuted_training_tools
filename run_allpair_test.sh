@@ -14,7 +14,7 @@ export NCCL_DEBUG="${NCCL_DEBUG:-INFO}"
 export LOCAL_WORLD="${LOCAL_WORLD:-$NPERNODE}"
 
 APP_CMD=(
-  python /home/hari/b200/Distrbuted_training_tools/npairs.py
+  python /opt/Distrbuted_training_tools//npairs.py
 )
 # ------------------------------------------------------------------
 
