@@ -66,7 +66,7 @@ spec:
                   echo "#########################Hostfile#########################"
                   cat /opt/hostfile
                   echo "##########################################################"
-                  bash /opt/Distrbuted_training_tools/testrun.sh
+                  #bash /opt/Distrbuted_training_tools/testrun.sh
                   # mpirun --allow-run-as-root -np 16 -hostfile /opt/hostfile -x LOCAL_WORLD=8 -x MASTER_ADDR=$VC_SERVER_HOSTS -x MASTER_PORT=45566 python /opt/ddp_allreduce/mpi.py
                   sleep 6000
                   echo "tests done."
