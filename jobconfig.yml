@@ -1,0 +1,156 @@
+apiVersion: batch.volcano.sh/v1alpha1
+kind: Job
+metadata:
+  generateName: mpi-allpair-allreduce-hari
+  namespace: gcr-alpha2
+spec:
+  queue: gcr-alpha2
+  minAvailable: 1
+  plugins:
+    ssh: []   # passwordless SSH + host files under /etc/volcano
+    svc: []   # creates per-task headless Services when containerPorts are present
+    env: []   # VC_* envs
+  tasks:
+    - name: server
+      replicas: 1
+      template:
+        metadata:
+          labels:
+            app: allpair-mpi
+            role: server
+        spec:
+          schedulerName: volcano
+          restartPolicy: Never
+          volumes:
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 100Gi
+          tolerations:
+            - key: "rdma"
+              operator: "Exists"
+              effect: "NoSchedule"
+            - key: "nvidia.com/gpu"
+              operator: "Exists"
+              effect: "NoSchedule"
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: allpair-mpi
+                  topologyKey: kubernetes.io/hostname
+          containers:
+            - name: server
+              image: nvcr.io/nvidia/pytorch:25.06-py3
+              volumeMounts:
+                - name: dshm
+                  mountPath: /dev/shm
+              ports:
+                - name: rdma
+                  containerPort: 18515
+              command: ["/bin/bash","-lc"]
+              args:
+                - |
+                  set -eo pipefail
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -y
+                  apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
+                    ibverbs-utils rdmacm-utils perftest infiniband-diags
+                  mkdir -p /run/sshd && ssh-keygen -A
+                  /usr/sbin/sshd -D -e &
+                  for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
+                  for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
+                  git clone https://github.com/IamNirmata/Distrbuted_training_tools.git /opt/Distrbuted_training_tools
+                  sleep 60
+                  echo "#########################Hostfile#########################"
+                  cat /opt/hostfile
+                  echo "##########################################################"
+                  bash /opt/Distrbuted_training_tools/testrun.sh
+                  # mpirun --allow-run-as-root -np 16 -hostfile /opt/hostfile -x LOCAL_WORLD=8 -x MASTER_ADDR=$VC_SERVER_HOSTS -x MASTER_PORT=45566 python /opt/ddp_allreduce/mpi.py
+                  sleep 6000
+                  echo "tests done."
+              resources:
+                requests:
+                  nvidia.com/gpu: "8"
+                  cpu: "180"
+                  memory: "2500Gi"
+                  rdma/rdma_shared_device_a: "1"
+                limits:
+                  nvidia.com/gpu: "8"
+                  cpu: "180"
+                  memory: "2500Gi"
+                  rdma/rdma_shared_device_a: "1"
+    - name: client
+      replicas: 3
+      template:
+        metadata:
+          labels:
+            app: allpair-mpi
+            role: client
+        spec:
+          schedulerName: volcano
+          restartPolicy: Never
+          volumes:
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 100Gi
+          tolerations:
+            - key: "rdma"
+              operator: "Exists"
+              effect: "NoSchedule"
+            - key: "nvidia.com/gpu"
+              operator: "Exists"
+              effect: "NoSchedule"
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchLabels:
+                      app: allpair-mpi
+                  topologyKey: kubernetes.io/hostname
+          containers:
+            - name: client
+              image: nvcr.io/nvidia/pytorch:25.06-py3
+              volumeMounts:
+                - name: dshm
+                  mountPath: /dev/shm
+              ports:
+                - name: rdma
+                  containerPort: 18515
+              command: ["/bin/bash","-lc"]
+              args:
+                - |
+                  set -eo pipefail
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -y
+                  apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
+                    ibverbs-utils rdmacm-utils perftest infiniband-diags
+                  mkdir -p /run/sshd && ssh-keygen -A
+                  /usr/sbin/sshd -D -e &
+
+                  SERVER_HOST="$(tr ',' '\n' < /etc/volcano/VC_SERVER_HOSTS | head -n1)"
+                  if [[ -z "$SERVER_HOST" ]]; then
+                    echo "VC_SERVER_HOSTS empty or missing"; exit 1
+                  fi
+                  echo "Server host: $SERVER_HOST"
+                  for i in $(seq 1 60); do getent hosts "$SERVER_HOST" && break; echo "Waiting for DNS $SERVER_HOST"; sleep 2; done
+                  for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
+                  for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
+                  echo "#########################Hostfile#########################"
+                  cat /opt/hostfile
+                  echo "##########################################################"
+                  sleep 6000
+                  echo "Client done."
+              resources:
+                requests:
+                  nvidia.com/gpu: "8"
+                  cpu: "180"
+                  memory: "2500Gi"
+                  rdma/rdma_shared_device_a: "1"
+                limits:
+                  nvidia.com/gpu: "8"
+                  cpu: "180"
+                  memory: "2500Gi"
+                  rdma/rdma_shared_device_a: "1"
