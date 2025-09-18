@@ -19,6 +19,4 @@ NP_TOTAL=16 \
 LOGDIR=$home_dir/logs \
 MASTER_PORT_BASE=45567 \
 GEN_SCRIPT=/opt/Distrbuted_training_tools/generate_permutations.py \
-
-echo "Starting allpair test..."
 bash /opt/Distrbuted_training_tools/run_allpair_test.sh
