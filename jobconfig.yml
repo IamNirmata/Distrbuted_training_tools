@@ -66,7 +66,7 @@ spec:
                   echo "#########################Hostfile#########################"
                   cat /opt/hostfile
                   echo "##########################################################"
-                  #bash /opt/Distrbuted_training_tools/testrun.sh
+                  bash /opt/Distrbuted_training_tools/testrun.sh
                   sleep 6000
                   echo "tests done."
               resources:
