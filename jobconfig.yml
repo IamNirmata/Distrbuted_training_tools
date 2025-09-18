@@ -2,9 +2,9 @@ apiVersion: batch.volcano.sh/v1alpha1
 kind: Job
 metadata:
   generateName: mpi-allpair-allreduce-hari
-  namespace: gcr-alpha2
+  namespace: gcr-admin
 spec:
-  queue: gcr-alpha2
+  queue: gcr-admin
   minAvailable: 1
   plugins:
     ssh: []   # passwordless SSH + host files under /etc/volcano
@@ -81,7 +81,7 @@ spec:
                   memory: "2500Gi"
                   rdma/rdma_shared_device_a: "1"
     - name: client
-      replicas: 3
+      replicas: 1
       template:
         metadata:
           labels:
@@ -128,7 +128,6 @@ spec:
                     ibverbs-utils rdmacm-utils perftest infiniband-diags
                   mkdir -p /run/sshd && ssh-keygen -A
                   /usr/sbin/sshd -D -e &
-
                   SERVER_HOST="$(tr ',' '\n' < /etc/volcano/VC_SERVER_HOSTS | head -n1)"
                   if [[ -z "$SERVER_HOST" ]]; then
                     echo "VC_SERVER_HOSTS empty or missing"; exit 1
