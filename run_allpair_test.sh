@@ -135,6 +135,7 @@ for combo in "${combinations[@]}"; do
     ((job_idx++))
   done
 
+  
   # Wait for all jobs in this round to finish
   fail=0
   for pid in "${pids[@]}"; do
@@ -151,6 +152,8 @@ for combo in "${combinations[@]}"; do
     echo "Round $round_idx: all jobs completed."
   fi
 
+  echo "The logs for this round $round_idx are:"
+  cat "$LOGDIR/round${round_idx}_job0_${node1}--${node2}.log"
   ((round_idx++))
 done
 
