@@ -114,22 +114,44 @@ for combo in "${combinations[@]}"; do
 
 
     # Kick off MPI job in background
+    # Build optional extras array from string
+    extras=()
+    if [[ -n "${EXTRA_MPI_ARGS:-}" ]]; then
+      # shellcheck disable=SC2206
+      extras=($EXTRA_MPI_ARGS)
+    fi
+
+    # Compose command
     mp_cmd=(
-      mpirun --tag-output --display-map --allow-run-as-root
+      mpirun
+      --tag-output
+      --display-map
+      --allow-run-as-root
       -np "$NP_TOTAL"
       -H "${node1}:${NPERNODE},${node2}:${NPERNODE}"
       -x LOCAL_WORLD
       -x NCCL_DEBUG
-      -x MASTER_ADDR="${node1}"
-      -x MASTER_PORT="${master_port}"
-      ${EXTRA_MPI_ARGS}
+      -x "MASTER_ADDR=${node1}"
+      -x "MASTER_PORT=${master_port}"
+      "${extras[@]}"
       "${APP_CMD[@]}"
     )
+    echo "Full command:"
+    printf '  %s\n' "${mp_cmd[@]}"
+    # Run in background with logging
+    mpirun --tag-output \
+      --display-map \
+      --allow-run-as-root \
+      -np "$NP_TOTAL" \
+      -H "${node1}:${NPERNODE},${node2}:${NPERNODE}" \
+      -x LOCAL_WORLD \
+      -x NCCL_DEBUG \
+      -x "MASTER_ADDR=${node1}" \
+      -x "MASTER_PORT=${master_port}" \
+      "${extras[@]}" \
+      "${APP_CMD[@]}" \
+      >"$log_file" 2>&1 &
 
-    # Optionally show the command:
-    echo "    Running: ${mp_cmd[*]}"
-
-    "${mp_cmd[@]}" >"$log_file" 2>&1 &
 
     pids+=($!)
     ((job_idx++))
