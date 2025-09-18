@@ -3,10 +3,10 @@ set -euo pipefail
 
 # -------------------------- CONFIG (edit) --------------------------
 HOSTFILE="${HOSTFILE:-/opt/hostfile}"
-GEN_SCRIPT="${GEN_SCRIPT:-validation/allpair/generate_permutations.py}"  # path to your Python generator
+GEN_SCRIPT="${GEN_SCRIPT:-/opt/Distrbuted_training_tools/generate_permutations.py}"  # path to your Python generator
 NPERNODE="${NPERNODE:-8}"         # processes per node
 NP_TOTAL="${NP_TOTAL:-$((2*NPERNODE))}"   # -np (total ranks across both nodes)
-LOGDIR="${LOGDIR:-allpairs_logs}" # where per-pair logs go
+LOGDIR="${LOGDIR:-/opt/allpairs_logs}" # where per-pair logs go
 MASTER_PORT_BASE="${MASTER_PORT_BASE:-45566}" # will use BASE + job_idx per round
 EXTRA_MPI_ARGS="${EXTRA_MPI_ARGS:-}" # e.g., "--mca pml ucx --mca btl ^openib"
 # Example NCCL/other envs; add/remove as needed:
