@@ -13,6 +13,9 @@
 home_dir=/opt/cv
 mkdir -p $home_dir
 
+
+#allpair test
+
 HOSTFILE=/opt/hostfile \
 NPERNODE=8 \
 NP_TOTAL=16 \
