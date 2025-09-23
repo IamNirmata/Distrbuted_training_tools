@@ -136,9 +136,39 @@ for combo in "${combinations[@]}"; do
       "${extras[@]}"
       "${APP_CMD[@]}"
     )
-    echo "Full command:"
-    printf '  %s\n' "${mp_cmd[@]}"
+
+    echo "    Log file: $log_file"
+    cat /dev/null >"$log_file"  # touch/clear log file
+
     # Run in background with logging
+    # mpirun --tag-output \
+    #   --display-map \
+    #   --allow-run-as-root \
+    #   -np "$NP_TOTAL" \
+    #   -H "${node1}:${NPERNODE},${node2}:${NPERNODE}" \
+    #   -x LOCAL_WORLD \
+    #   -x NCCL_DEBUG \
+    #   -x "MASTER_ADDR=${node1}" \
+    #   -x "MASTER_PORT=${master_port}" \
+    #   "${extras[@]}" \
+    #   "${APP_CMD[@]}" \
+    #   >"$log_file" 2>&1 &
+
+    # stdbuf -oL -eL mpirun \
+    #   --tag-output \
+    #   --display-map \
+    #   --allow-run-as-root \
+    #   -np "$NP_TOTAL" \
+    #   -H "${node1}:${NPERNODE},${node2}:${NPERNODE}" \
+    #   -x LOCAL_WORLD \
+    #   -x NCCL_DEBUG \
+    #   -x "MASTER_ADDR=${node1}" \
+    #   -x "MASTER_PORT=${master_port}" \
+    #   -x "NCCL_SOCKET_IFNAME=${NCCL_SOCKET_IFNAME:-eth0}" \
+    #   ${EXTRA_MPI_ARGS} \
+    #   "${APP_CMD[@]}" \
+    #   >>"$log_file" 2>&1 &
+
     mpirun --tag-output \
       --display-map \
       --allow-run-as-root \
@@ -149,10 +179,11 @@ for combo in "${combinations[@]}"; do
       -x "MASTER_ADDR=${node1}" \
       -x "MASTER_PORT=${master_port}" \
       "${extras[@]}" \
-      "${APP_CMD[@]}" \
-      >"$log_file" 2>&1 &
+      "${APP_CMD[@]}" >>"$log_file" 2>&1 
 
 
+    # Optionally show the command:
+    echo "    Running: ${mp_cmd[*]}"
     pids+=($!)
     ((job_idx++))
   done
