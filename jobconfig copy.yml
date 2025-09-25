@@ -22,10 +22,13 @@ spec:
           schedulerName: volcano
           restartPolicy: Never
           volumes:
-            - name: dshm
+            - name: dshm # use /dev/shm for inter-process communication
               emptyDir:
                 medium: Memory
                 sizeLimit: 100Gi
+            - name: data
+              persistentVolumeClaim:
+                claimName: pvc-local-gcr-admin-01
           tolerations:
             - key: "rdma"
               operator: "Exists"
@@ -69,6 +72,9 @@ spec:
                   # bash /opt/Distrbuted_training_tools/testrun.sh
                   sleep 6000
                   echo "tests done."
+              volumeMounts:
+                - name: data
+                  mountPath: /data
               resources:
                 requests:
                   nvidia.com/gpu: "8"
@@ -95,6 +101,9 @@ spec:
               emptyDir:
                 medium: Memory
                 sizeLimit: 100Gi
+            - name: data
+              persistentVolumeClaim:
+                claimName: pvc-local-gcr-admin-01
           tolerations:
             - key: "rdma"
               operator: "Exists"
@@ -109,6 +118,14 @@ spec:
                     matchLabels:
                       app: allpair-mpi
                   topologyKey: kubernetes.io/hostname
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: In
+                        values:
+                          - "gcr_node_placeholder"
           containers:
             - name: client
               image: nvcr.io/nvidia/pytorch:25.06-py3
@@ -142,6 +159,9 @@ spec:
                   git clone https://github.com/IamNirmata/Distrbuted_training_tools.git /opt/Distrbuted_training_tools
                   sleep 6000
                   echo "Client done."
+              volumeMounts:
+                - name: data
+                  mountPath: /data
               resources:
                 requests:
                   nvidia.com/gpu: "8"
