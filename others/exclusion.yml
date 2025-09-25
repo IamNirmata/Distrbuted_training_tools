@@ -1,0 +1,13 @@
+          tolerations:
+            - key: "nvidia.com/gpu"
+              operator: "Exists"     # tolerates any value of this taint
+              effect: "NoSchedule"
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: kubernetes.io/hostname
+                        operator: NotIn
+                        values:
+                          - "msr01-gpu-124"
