@@ -6,4 +6,4 @@ kubectl get nodes --no-headers -o custom-columns=NAME:.metadata.name \
 
 
 
-kubectl create -f temp_job.yml
+kubectl create -f 
