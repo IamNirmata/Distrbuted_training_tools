@@ -8,5 +8,5 @@ mkdir -p /run/sshd && ssh-keygen -A
 for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
 for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
 
-export gcrnode=$(cat /opt/gcrnode.txt)
-echo "GCR Node name: $gcrnode"
+# export gcrnode=$(cat /opt/gcrnode.txt)
+# echo "GCR Node name: $gcrnode"
