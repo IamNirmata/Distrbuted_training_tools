@@ -14,7 +14,7 @@ log_dir=/data/cluster_validation/dltest/latest/
 #variables
 # --- config ---
 NS="gcr-admin"
-TEMPLATE=$dtools_dir/dltest.yml   # path to the YAML you pasted (save it once) /home/hari/b200/validation/distrbuted_training_tools/b200/dltest.yml
+TEMPLATE=/home/hari/b200/validation/others/dltest.yml  # path to the YAML you pasted (save it once) /home/hari/b200/validation/distrbuted_training_tools/b200/dltest.yml
 NODES_FILE=$dtools_dir/nodes.txt                # uses $hdir if you already set it
 OUTDIR="$dtools_dir/job_yamls"                   # where to write per-node yamls
 APPLY="yes"                                        # set to "no" to only generate files
