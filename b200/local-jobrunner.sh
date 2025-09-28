@@ -16,7 +16,8 @@ log_dir=/data/cluster_validation/dltest/latest/
 NS="gcr-admin"
 TEMPLATE=/home/hari/b200/validation/others/dltest.yml  # path to the YAML you pasted (save it once) /home/hari/b200/validation/distrbuted_training_tools/b200/dltest.yml
 NODES_FILE=$dtools_dir/nodes.txt                # uses $hdir if you already set it
-OUTDIR="$dtools_dir/job_yamls"                   # where to write per-node yamls
+# OUTDIR="$dtools_dir/job_yamls"
+OUTDIR="$hdir/job_yamls"            # where to write per-node yamls
 APPLY="yes"                                        # set to "no" to only generate files
 # --------------
 
@@ -53,6 +54,10 @@ while IFS= read -r NODE; do
 
   # replace the placeholder safely
   sed "s/gcr-node-name-placeholder/${NODE}/g" "$TEMPLATE" > "$OUTFILE"
+  # replace any other placeholders if needed
+  # replace job name placeholder "gcr-daily-validation-hari-placeholder-" with "gcr-daily-validation-hari-NODENAME-"
+  sed -i "s/gcr-daily-validation-hari-placeholder-/gcr-daily-validation-hari-${NODE}-/g" "$OUTFILE"
+  
 
   echo "✔ wrote $OUTFILE"
 
@@ -65,37 +70,3 @@ done < "$tmp_nodes"
 
 rm -f "$tmp_nodes"
 echo "Done."
-
-
-
-
-
-
-
-
-
-
-
-
-
-#step 2: Create tmp_job.yml
-export gcrjobname=$(kubectl create -f $dltest_dir/dltest.yml -n gcr-admin --dry-run=client -o yaml 2>/dev/null
-  | awk '{print $1}' | cut -d'/' -f2)
-
-podname=$gcrjobname-server-0
-echo "GCR Job name: $gcrjobname"
-echo "GCR Pod name: $podname"
-
-# step 3: fetch node names from gcrjobname
-gcrnode=$(kubectl get pod $podname -n gcr-admin -o jsonpath='{.spec.nodeName}{"\n"}')
-echo "GCR Node name: $gcrnode"
-
-#step 4: pass the node names to the jobpod using kubectl exec
-# kubectl exec -n gcr-admin $podname -- bash -c "echo $gcrnode > /opt/gcrnode.txt"
-# echo "GCR Node name written to /opt/gcrnode.txt in the job pod"
-#### The node has been passed to the job config file using env variable in dltest.yml as gcrnode
-
-
-
-
-
