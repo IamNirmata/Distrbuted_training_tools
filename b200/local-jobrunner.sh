@@ -51,12 +51,14 @@ while IFS= read -r NODE; do
   [[ "$NODE" =~ ^# ]] && continue
 
   OUTFILE="${OUTDIR}/tmp_dltest_${NODE}.yml"
-
+  # timestamp in los angeles timezone
+  timestamp=$(TZ="America/Los_Angeles" date +%Y%m%d_%H%M%S)
+  today=$(TZ="America/Los_Angeles" date +%Y%m%d)
   # replace the placeholder safely
   sed "s/gcr-node-name-placeholder/${NODE}/g" "$TEMPLATE" > "$OUTFILE"
   # replace any other placeholders if needed
   # replace job name placeholder "gcr-daily-validation-hari-placeholder-" with "gcr-daily-validation-hari-NODENAME-"
-  sed -i "s/gcr-daily-validation-hari-placeholder-/gcr-daily-validation-hari-${NODE}-/g" "$OUTFILE"
+  sed -i "s/gcr-daily-validation-hari-placeholder-/gcr-daily-validation-hari-$timestamp-${NODE}-/g" "$OUTFILE"
   
 
   echo "✔ wrote $OUTFILE"
