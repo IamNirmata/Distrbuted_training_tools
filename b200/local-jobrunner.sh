@@ -2,9 +2,9 @@
 set -euo pipefail
 
 # Directories at local machine
-hdir=/home/hari/b200/validation/
-dtools_dir=$hdir/distrbuted_training_tools/b200/
-dltest_dir=$hdir/deeplearning_unit_test/
+hdir=/home/hari/b200/validation
+dtools_dir=$hdir/distrbuted_training_tools/b200
+dltest_dir=$hdir/deeplearning_unit_test
 
 # Directories at job pod
 job_dir=/opt/
@@ -26,10 +26,12 @@ APPLY="yes"                                        # set to "no" to only generat
 cd $hdir
 
 #step 1: Get all node names
+del "$NODES_FILE" 2>/dev/null || true
+echo "Fetching GPU node names..."
 kubectl get nodes --no-headers -o custom-columns=NAME:.metadata.name \
-  | grep "gpu" > $dtools_dir/nodes.txt
-echo "Node names written to $dtools_dir/nodes.txt"
-
+  | grep "gpu" > "$NODES_FILE"
+echo "Node names written to NODES_FILE: $NODES_FILE"
+wait
 #######################step 2: Create job yamls for each node#########################
 mkdir -p "$OUTDIR" # ensure output dir exists
 
@@ -42,6 +44,9 @@ tmp_nodes="$(mktemp)"
 tr -d '\r' < "$NODES_FILE" > "$tmp_nodes"
 
 echo "Generating jobs from: $NODES_FILE"
+echo "Available nodes:"
+cat "$tmp_nodes"
+echo "Using template: $TEMPLATE"
 echo "Writing to: $OUTDIR"
 echo
 
@@ -52,13 +57,13 @@ while IFS= read -r NODE; do
 
   OUTFILE="${OUTDIR}/tmp_dltest_${NODE}.yml"
   # timestamp in los angeles timezone
-  timestamp=$(TZ="America/Los_Angeles" date +%Y%m%d_%H%M%S)
+  timestamp=$(TZ="America/Los_Angeles" date +%Y%m%d-%H%M%S)
   today=$(TZ="America/Los_Angeles" date +%Y%m%d)
   # replace the placeholder safely
   sed "s/gcr-node-name-placeholder/${NODE}/g" "$TEMPLATE" > "$OUTFILE"
   # replace any other placeholders if needed
-  # replace job name placeholder "gcr-daily-validation-hari-placeholder-" with "gcr-daily-validation-hari-NODENAME-"
-  sed -i "s/gcr-daily-validation-hari-placeholder-/gcr-daily-validation-hari-$timestamp-${NODE}-/g" "$OUTFILE"
+  # replace job name placeholder "gcr-daily-validation-hari-placeholder-" with "gcrdcv-hari-NODENAME-"
+  sed -i "s/gcr-daily-validation-hari-placeholder-/gcrdcv-hari-$timestamp-${NODE}-/g" "$OUTFILE"
   
 
   echo "✔ wrote $OUTFILE"
