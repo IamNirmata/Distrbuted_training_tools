@@ -222,8 +222,8 @@ training_arguments = SFTConfig(
     save_on_each_node=False,
     
     # Evaluation
-    evaluation_strategy="steps",
-    eval_steps=100,
+    evaluation_strategy="no",
+    # eval_steps=100,
 )
 
 # --- 6. Initialize SFTTrainer ---
