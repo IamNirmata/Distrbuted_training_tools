@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hari-pvc
+spec:
+  accessModes:
+    - ReadWriteMany  # so multiple nodes can share it
+  resources:
+    requests:
+      storage: 2048Gi
+  storageClassName: nebius-nfs  # or whatever your Nebius CSI driver uses

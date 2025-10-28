@@ -1,0 +1,59 @@
+# This job runs *once* to download the model and dataset
+# to the shared /mnt/data volume.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prepare-environment
+spec:
+  template:
+    spec:
+      volumes:
+        - name: shared-storage
+          hostPath:
+            # Mounts the /mnt/data directory from the host node
+            path: /mnt/data
+            type: DirectoryOrCreate
+      containers:
+        - name: downloader
+          image: python:3.10-slim
+          command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              pip install huggingface_hub datasets git-lfs
+              git lfs install
+
+              echo "Logging in to Hugging Face..."
+              huggingface-cli login --token $HF_TOKEN
+
+              echo "Cloning Llama-3-8B-Instruct model to /mnt/data/models/..."
+              # Using snapshot_download is safer and more reliable
+              python -c "from huggingface_hub import snapshot_download; \
+              snapshot_download(repo_id='meta-llama/Meta-Llama-3-8B-Instruct', \
+                                local_dir='/mnt/data/models/Meta-Llama-3-8B-Instruct', \
+                                token='$HF_TOKEN')"
+
+              echo "Downloading and saving XLAM-60k dataset to /mnt/data/datasets/..."
+              # Using the 60k dataset from the hf_doc.md
+              python -c "from datasets import load_dataset; \
+              dataset = load_dataset('Salesforce/xlam-function-calling-60k', split='train'); \
+              dataset.save_to_disk('/mnt/data/datasets/xlam-function-calling-60k')"
+
+              echo "All assets downloaded."
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-secret
+                  key: token
+          volumeMounts:
+            - name: shared-storage
+              mountPath: /mnt/data
+          # We request 1 GPU to ensure this runs on a GPU node.
+          # This is a simple way to get access to the node with /mnt/data
+          # without needing to know its specific labels.
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+      restartPolicy: Never
+  backoffLimit: 1
