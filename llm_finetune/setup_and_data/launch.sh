@@ -28,3 +28,8 @@ exec torchrun \
   --master_addr="${MASTER_ADDR}" \
   --master_port="${MASTER_PORT}" \
   "${TRAIN_SCRIPT}" ${EXTRA_ARGS}
+
+
+#NODE_RANK=0 MASTER_ADDR=llama3-finetune-job-master-0 ./launch.sh
+#NODE_RANK=1 MASTER_ADDR=llama3-finetune-job-master-0 ./launch.sh
+#   NODE_RANK=1 MASTER_ADDR=llama3-finetune-sleep-job-master-0.default.svc.cluster.local ./launch.sh
