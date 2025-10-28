@@ -1,0 +1,86 @@
+
+
+
+
+# This is a PyTorchJob, which is the standard K8s-native
+# way to orchestrate a multi-node torchrun command.
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: "llama3-finetune-sleep-job"
+spec:
+  # nproc_per_node=8: We run 8 processes on each pod (1 per H100)
+  # nnodes=2: We have 2 pods total (1 master + 1 worker)
+  # The PyTorchJob controller automatically injects RANK, WORLD_SIZE,
+  # MASTER_ADDR, and MASTER_PORT into each pod.
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          volumes:
+            - name: shared-storage
+              hostPath:
+                path: /mnt/data
+                type: Directory
+          containers:
+            - name: pytorch
+              # This image MUST match the IMAGE_TAG in your setup script
+              image: ghcr.io/iamnirmata/nebiusimage1:latest
+              command:
+                - sleep "3600"
+                - sleep 1h
+              env:
+                - name: WANDB_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: wandb-secret
+                      key: api_key
+                - name: HF_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: hf-secret
+                      key: token
+              resources:
+                limits:
+                  # This requests all 8 GPUs on the node
+                  nvidia.com/gpu: 8
+              volumeMounts:
+                - name: shared-storage
+                  mountPath: /mnt/data
+    Worker:
+      replicas: 1 # 1 master + 1 worker = 2 nodes
+      restartPolicy: OnFailure
+      template:
+        spec:
+          volumes:
+            - name: shared-storage
+              hostPath:
+                path: /mnt/data
+                type: Directory
+          containers:
+            - name: pytorch
+              # This image MUST match the IMAGE_TAG in your setup script
+              image: ghcr.io/iamnirmata/nebiusimage1:latest
+              command:
+                - sleep "3600"
+                - sleep 1h
+              env:
+                - name: WANDB_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: wandb-secret
+                      key: api_key
+                - name: HF_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: hf-secret
+                      key: token
+              resources:
+                limits:
+                  # This requests all 8 GPUs on the node
+                  nvidia.com/gpu: 8
+              volumeMounts:
+                - name: shared-storage
+                  mountPath: /mnt/data
