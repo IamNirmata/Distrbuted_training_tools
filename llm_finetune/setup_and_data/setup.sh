@@ -2,7 +2,7 @@ pip install -U datasets
 pip install -U wandb transformers peft bitsandbytes accelerate huggingface_hub trl
 python -m pip install --upgrade pip
 
-
+chmod +x ./launch.sh
 
 
 
