@@ -3,6 +3,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
 ibverbs-utils rdmacm-utils perftest infiniband-diags
+pip install -r requirements.txt
 mkdir -p /run/sshd && ssh-keygen -A
 /usr/sbin/sshd -D -e &
 for host in ${HOSTNAME//,/ }; do echo "$host slots=8"; done > /opt/hostfile

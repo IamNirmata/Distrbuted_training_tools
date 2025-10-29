@@ -164,9 +164,6 @@ def main() -> None:
 
     trainer_kwargs = dict(
         model=model,
-    trainer = SFTTrainer(
-        model=model,
-        tokenizer=tokenizer,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -182,21 +179,6 @@ def main() -> None:
         trainer_kwargs["dataset_text_field"] = "text"
 
     trainer = SFTTrainer(**trainer_kwargs)
-
-    if is_main_process:
-        print("Starting training...")
-    trainer.train()
-
-    accelerator.wait_for_everyone()
-    if is_main_process:
-        print("Training finished. Saving adapters...")
-    trainer.save_model(OUTPUT_DIR)
-
-    if is_main_process:
-        print("All done!")
-
-        max_seq_length=2048,
-    )
 
     if is_main_process:
         print("Starting training...")
