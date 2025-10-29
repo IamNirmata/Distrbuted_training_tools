@@ -6,7 +6,7 @@ NODE_RANK=$RANK
 
 # --- configurable (via env or defaults) ---
 NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
-NNODES="${NNODES:-2}"
+NNODES="${NNODES:-1}"
 NODE_RANK="${NODE_RANK:-0}"                   # 0 for master, 1..NNODES-1 for workers
 MASTER_ADDR="${MASTER_ADDR:-llama3-finetune-job-master-0}"  # K8s Service DNS or IP
 MASTER_PORT="${MASTER_PORT:-29500}"
