@@ -23,11 +23,12 @@ spec:
             - name: pytorch
               image: nvcr.io/nvidia/pytorch:24.07-py3
               imagePullPolicy: IfNotPresent
-              command: ["sleep", "36000"]  # ~10 hours
+              command: ["/bin/bash", "-lc"]
               args:
                 - |
                   echo "Worker started"
                   git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
+                  sleep 36000
               volumeMounts:
                 - name: external-storage
                   mountPath: /mnt/data
@@ -65,11 +66,12 @@ spec:
             - name: pytorch
               image: nvcr.io/nvidia/pytorch:24.07-py3
               imagePullPolicy: IfNotPresent
-              command: ["sleep", "36000"]
+              command: ["/bin/bash", "-lc"]
               args:
                 - |
                   echo "Worker started"
                   git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
+                  sleep 36000
               volumeMounts:
                 - name: external-storage
                   mountPath: /mnt/data
