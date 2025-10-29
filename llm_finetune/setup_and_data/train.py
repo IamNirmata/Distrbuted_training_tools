@@ -80,6 +80,7 @@ def main() -> None:
 
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({"pad_token": CUSTOM_PAD_TOKEN})
+        tokenizer.pad_token = CUSTOM_PAD_TOKEN
         if is_main_process:
             print(f"Added custom pad token: {CUSTOM_PAD_TOKEN}")
     tokenizer.padding_side = "right"
@@ -114,8 +115,12 @@ def main() -> None:
         torch_dtype=torch.bfloat16,
         trust_remote_code=True,
     )
-    if os.environ.get("USE_FLASH_ATTENTION", "1") == "1":
+    if os.environ.get("USE_FLASH_ATTENTION", "0") == "1":
         model_kwargs["attn_implementation"] = "flash_attention_2"
+        if is_main_process:
+            print("Using flash_attention_2 kernels")
+    elif is_main_process:
+        print("Using standard attention implementation")
 
     if is_main_process:
         print("Loading base model...")
@@ -125,6 +130,9 @@ def main() -> None:
     model.config.pad_token_id = tokenizer.pad_token_id
     model = prepare_model_for_kbit_training(model)
     model.config.use_cache = False
+    # Explicitly align gradient checkpointing behavior with upcoming PyTorch defaults.
+    if hasattr(model, "gradient_checkpointing_enable"):
+        model.gradient_checkpointing_enable(use_reentrant=False)
 
     peft_config = LoraConfig(
         r=16,
@@ -160,6 +168,7 @@ def main() -> None:
         bf16=True,
         fp16=False,
         save_on_each_node=False,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
     )
 
     trainer_kwargs = dict(
