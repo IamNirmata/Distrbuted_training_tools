@@ -178,7 +178,7 @@ model = AutoModelForCausalLM.from_pretrained(
     # REMOVE THE device_map ARGUMENT
     # device_map={"": accelerator.process_index}, # <-- DELETE THIS LINE
     attn_implementation="flash_attention_2", 
-    torch_dtype=torch.bfloat16,
+    dtype=torch.bfloat16,
     trust_remote_code=True,
 )
 
