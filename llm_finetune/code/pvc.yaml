@@ -1,0 +1,25 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: external-storage-persistent-volume
+spec:
+  storageClassName: csi-mounted-fs-path-sc
+  capacity:
+    storage: 2Ti
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/mnt/data/csi-mounted-fs-path-sc"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: external-storage-persistent-volumeclaim
+  namespace: default
+spec:
+  storageClassName: csi-mounted-fs-path-sc
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Ti

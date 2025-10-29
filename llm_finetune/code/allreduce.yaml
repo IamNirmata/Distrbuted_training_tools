@@ -1,0 +1,95 @@
+apiVersion: "kubeflow.org/v1"
+kind: PyTorchJob
+metadata:
+  name: "llama3-finetune-sleep-job"
+spec:
+  pytorchReplicaSpecs:
+    Master:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: nvcr.io/nvidia/pytorch:24.07-py3
+              imagePullPolicy: IfNotPresent
+              args:
+                - |
+                  set -eo pipefail
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -y
+                  apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
+                    ibverbs-utils rdmacm-utils perftest infiniband-diags
+                  mkdir -p /run/sshd && ssh-keygen -A
+                  /usr/sbin/sshd -D -e &
+                  for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
+                  for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
+                  git clone https://github.com/lifengli137/ddp_allreduce.git /opt/ddp_allreduce
+                  line=$(grep -n "$HOSTNAME" /opt/hostfile | cut -d: -f1)
+                  echo "##########################Hostfile#########################"
+                  cat /opt/hostfile
+                  echo "##########################################################"
+                  echo "line: $line"
+                  torchrun --nnodes=2 --master-addr=$VC_SERVER_HOSTS --master-port=45567 --node-rank=$((line - 1)) --nproc-per-node=8 /opt/ddp_allreduce/torchrun.py
+                  echo "Server done."
+                  sleep 3600
+              command: ["sleep", "3600"]    # sleep 1h
+              env:
+                - name: WANDB_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: wandb-secret
+                      key: api_key
+                - name: HF_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: hf-secret
+                      key: token
+              resources:
+                limits:
+                  nvidia.com/gpu: 8
+
+    Worker:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+            - name: pytorch
+              image: nvcr.io/nvidia/pytorch:24.07-py3
+              imagePullPolicy: IfNotPresent
+              args:
+                - |
+                  set -eo pipefail
+                  export DEBIAN_FRONTEND=noninteractive
+                  apt-get update -y
+                  apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
+                    ibverbs-utils rdmacm-utils perftest infiniband-diags
+                  mkdir -p /run/sshd && ssh-keygen -A
+                  /usr/sbin/sshd -D -e &
+                  for host in ${VC_SERVER_HOSTS//,/ }; do echo "$host slots=8"; done > /opt/hostfile
+                  for host in ${VC_CLIENT_HOSTS//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
+                  git clone https://github.com/lifengli137/ddp_allreduce.git /opt/ddp_allreduce
+                  line=$(grep -n "$HOSTNAME" /opt/hostfile | cut -d: -f1)
+                  echo "##########################Hostfile#########################"
+                  cat /opt/hostfile
+                  echo "##########################################################"
+                  echo "line: $line"
+                  torchrun --nnodes=2 --master-addr=$VC_SERVER_HOSTS --master-port=45567 --node-rank=$((line - 1)) --nproc-per-node=8 /opt/ddp_allreduce/torchrun.py
+                  echo "Server done."
+                  sleep 3600
+              command: ["sleep", "3600"]
+              env:
+                - name: WANDB_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: wandb-secret
+                      key: api_key
+                - name: HF_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: hf-secret
+                      key: token
+              resources:
+                limits:
+                  nvidia.com/gpu: 8

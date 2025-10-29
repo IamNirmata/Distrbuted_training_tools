@@ -9,11 +9,24 @@ spec:
       restartPolicy: OnFailure
       template:
         spec:
+          volumes: 
+            - name: dshm
+              emptyDir: {}
+              medium: Memory
+              sizeLimit: "3200Gi"
+            - name: external-storage
+              persistentVolumeClaim:
+                claimName: external-storage-persistent-volumeclaim
           containers:
             - name: pytorch
               image: nvcr.io/nvidia/pytorch:24.07-py3
               imagePullPolicy: IfNotPresent
-              command: ["sleep", "3600"]    # sleep 1h
+              command: ["sleep", "36000"] # sleep 1h
+              volumeMounts: 
+                - name: external-storage # Must match the volume name above
+                  mountPath: "/mnt/data" # Path inside the container
+                - name: dshm
+                  mountPath: /dev/shm
               env:
                 - name: WANDB_API_KEY
                   valueFrom:
@@ -28,17 +41,29 @@ spec:
               resources:
                 limits:
                   nvidia.com/gpu: 8
-
     Worker:
       replicas: 1
       restartPolicy: OnFailure
       template:
         spec:
+          volumes: 
+            - name: external-storage
+              persistentVolumeClaim:
+                claimName: external-storage-persistent-volumeclaim
+            - name: dshm
+              emptyDir: {}
+              medium: Memory
+              sizeLimit: "3200Gi"
           containers:
             - name: pytorch
               image: nvcr.io/nvidia/pytorch:24.07-py3
               imagePullPolicy: IfNotPresent
-              command: ["sleep", "3600"]
+              command: ["sleep", "36000"]
+              volumeMounts: 
+                - name: external-storage # Must match the volume name above
+                  mountPath: "/mnt/data" # Path inside the container
+                - name: dshm
+                  mountPath: /dev/shm
               env:
                 - name: WANDB_API_KEY
                   valueFrom:
