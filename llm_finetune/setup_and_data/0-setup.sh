@@ -1,3 +1,19 @@
+set -eo pipefail
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y --no-install-recommends openssh-server openssh-client ca-certificates \
+ibverbs-utils rdmacm-utils perftest infiniband-diags
+mkdir -p /run/sshd && ssh-keygen -A
+/usr/sbin/sshd -D -e &
+for host in ${HOSTNAME//,/ }; do echo "$host slots=8"; done > /opt/hostfile
+for host in ${MASTER_ADDR//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
+
+# export gcrnode=$(cat /opt/gcrnode.txt)
+# echo "GCR Node name: $gcrnode"
+
+
+
+
 pip install -U datasets
 pip install -U wandb transformers peft bitsandbytes accelerate huggingface_hub trl
 python -m pip install --upgrade pip

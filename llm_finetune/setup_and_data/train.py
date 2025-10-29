@@ -239,7 +239,7 @@ training_arguments = SFTConfig(
     save_on_each_node=False,
     
     # Evaluation
-    evaluation_strategy="no",
+    # evaluation_strategy="no",
     # eval_steps=100,
 )
 
@@ -252,6 +252,7 @@ trainer = SFTTrainer(
     peft_config=peft_config,
     args=training_arguments,
     max_seq_length=2048,
+    evaluation_strategy="no",
 )
 
 # --- 7. Train ---
