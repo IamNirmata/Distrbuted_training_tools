@@ -1,14 +1,12 @@
-# This is a PyTorchJob, which is the standard K8s-native
-# way to orchestrate a multi-node torchrun command.
-apiVersion: "kubeflow.org/v1"
+# PyTorchJob that launches torchrun for two pods (master + worker) with eight
+# processes per node. The command clones the repository and then executes the
+# simplified fine-tuning script with torchrun so that each GPU gets its own
+# process.
+apiVersion: kubeflow.org/v1
 kind: PyTorchJob
 metadata:
-  name: "llama3-finetune-job"
+  name: llama3-finetune-job
 spec:
-  # nproc_per_node=8: We run 8 processes on each pod (1 per H100)
-  # nnodes=2: We have 2 pods total (1 master + 1 worker)
-  # The PyTorchJob controller automatically injects RANK, WORLD_SIZE,
-  # MASTER_ADDR, and MASTER_PORT into each pod.
   pytorchReplicaSpecs:
     Master:
       replicas: 1
@@ -16,22 +14,36 @@ spec:
       template:
         spec:
           volumes:
-            - name: shared-storage
-              hostPath:
-                path: /mnt/data
-                type: Directory
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 3200Gi
+            - name: external-storage
+              persistentVolumeClaim:
+                claimName: external-storage-persistent-volumeclaim
           containers:
             - name: pytorch
-              # This image MUST match the IMAGE_TAG in your setup script
-              image: ghcr.io/iamnirmata/nebiusimage1:latest
+              image: nvcr.io/nvidia/pytorch:24.07-py3
+              imagePullPolicy: IfNotPresent
               command:
-                - "torchrun"
-                - "--nproc_per_node=8"
-                - "--nnodes=2"
-                - "--node_rank=0" # This pod is the master, rank 0
-                - "--master_addr=llama3-finetune-job-master-0" # Service name
-                - "--master_port=29500"
-                - "01-training-script.py"
+                - /bin/bash
+                - -lc
+              args:
+                - |
+                  set -euxo pipefail
+                  if [ ! -d /workspace/distrbuted_training_tools ]; then
+                    git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
+                  fi
+                  cd /workspace/distrbuted_training_tools
+                  python -m pip install --upgrade pip
+                  python -m pip install --no-cache-dir -r llm_finetune/setup_and_data/requirements.txt
+                  torchrun \
+                    --nproc_per_node=8 \
+                    --nnodes=2 \
+                    --node_rank=0 \
+                    --master_addr=llama3-finetune-job-master-0 \
+                    --master_port=29500 \
+                    llm_finetune/setup_and_data/train.py
               env:
                 - name: WANDB_API_KEY
                   valueFrom:
@@ -45,33 +57,48 @@ spec:
                       key: token
               resources:
                 limits:
-                  # This requests all 8 GPUs on the node
                   nvidia.com/gpu: 8
               volumeMounts:
-                - name: shared-storage
+                - name: external-storage
                   mountPath: /mnt/data
+                - name: dshm
+                  mountPath: /dev/shm
     Worker:
-      replicas: 1 # 1 master + 1 worker = 2 nodes
+      replicas: 1
       restartPolicy: OnFailure
       template:
         spec:
           volumes:
-            - name: shared-storage
-              hostPath:
-                path: /mnt/data
-                type: Directory
+            - name: dshm
+              emptyDir:
+                medium: Memory
+                sizeLimit: 3200Gi
+            - name: external-storage
+              persistentVolumeClaim:
+                claimName: external-storage-persistent-volumeclaim
           containers:
             - name: pytorch
-              # This image MUST match the IMAGE_TAG in your setup script
-              image: ghcr.io/iamnirmata/nebius-llama3-poc:latest
+              image: nvcr.io/nvidia/pytorch:24.07-py3
+              imagePullPolicy: IfNotPresent
               command:
-                - "torchrun"
-                - "--nproc_per_node=8"
-                - "--nnodes=2"
-                - "--node_rank=1" # This pod is the worker, rank 1
-                - "--master_addr=llama3-finetune-job-master-0"
-                - "--master_port=29500"
-                - "01-training-script.py"
+                - /bin/bash
+                - -lc
+              args:
+                - |
+                  set -euxo pipefail
+                  if [ ! -d /workspace/distrbuted_training_tools ]; then
+                    git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
+                  fi
+                  cd /workspace/distrbuted_training_tools
+                  python -m pip install --upgrade pip
+                  python -m pip install --no-cache-dir -r llm_finetune/setup_and_data/requirements.txt
+                  torchrun \
+                    --nproc_per_node=8 \
+                    --nnodes=2 \
+                    --node_rank=1 \
+                    --master_addr=llama3-finetune-job-master-0 \
+                    --master_port=29500 \
+                    llm_finetune/setup_and_data/train.py
               env:
                 - name: WANDB_API_KEY
                   valueFrom:
@@ -85,8 +112,9 @@ spec:
                       key: token
               resources:
                 limits:
-                  # This requests all 8 GPUs on the node
                   nvidia.com/gpu: 8
               volumeMounts:
-                - name: shared-storage
+                - name: external-storage
                   mountPath: /mnt/data
+                - name: dshm
+                  mountPath: /dev/shm
