@@ -130,9 +130,8 @@ def main() -> None:
     model.config.pad_token_id = tokenizer.pad_token_id
     model = prepare_model_for_kbit_training(model)
     model.config.use_cache = False
-    # Explicitly align gradient checkpointing behavior with upcoming PyTorch defaults.
     if hasattr(model, "gradient_checkpointing_enable"):
-        model.gradient_checkpointing_enable(use_reentrant=False)
+        model.gradient_checkpointing_enable()
 
     peft_config = LoraConfig(
         r=16,
@@ -155,7 +154,7 @@ def main() -> None:
         output_dir=OUTPUT_DIR,
         dataset_text_field="text",
         remove_unused_columns=False,
-    report_to="wandb",
+        report_to="wandb",
         per_device_train_batch_size=4,
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=8,
