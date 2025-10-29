@@ -1,5 +1,6 @@
 apiVersion: kubeflow.org/v1
 kind: PyTorchJob
+# kind: Job
 metadata:
   name: llama3-finetune-sleep-job
 spec:
