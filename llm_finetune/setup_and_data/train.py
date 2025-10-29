@@ -154,6 +154,20 @@ bnb_config = BitsAndBytesConfig(
     bnb_4bit_use_double_quant=True,
 )
 
+# if accelerator.is_main_process:
+#     print("Loading base model with 4-bit quantization and flash_attention_2...")
+
+# # Load model
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_name,
+#     quantization_config=bnb_config,
+#     device_map={"": accelerator.process_index}, # Map model to current device
+#     attn_implementation="flash_attention_2", # Critical for H100
+#     torch_dtype=torch.bfloat16,
+#     trust_remote_code=True,
+# )
+
+
 if accelerator.is_main_process:
     print("Loading base model with 4-bit quantization and flash_attention_2...")
 
@@ -161,11 +175,14 @@ if accelerator.is_main_process:
 model = AutoModelForCausalLM.from_pretrained(
     model_name,
     quantization_config=bnb_config,
-    device_map={"": accelerator.process_index}, # Map model to current device
-    attn_implementation="flash_attention_2", # Critical for H100
+    # REMOVE THE device_map ARGUMENT
+    # device_map={"": accelerator.process_index}, # <-- DELETE THIS LINE
+    attn_implementation="flash_attention_2", 
     torch_dtype=torch.bfloat16,
     trust_remote_code=True,
 )
+
+
 
 # Resize token embeddings if we added a new pad token
 model.resize_token_embeddings(len(tokenizer))
