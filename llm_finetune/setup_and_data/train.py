@@ -1,5 +1,6 @@
 """Simplified multi-node fine-tuning script for Meta Llama 3."""
 
+import inspect
 import json
 import os
 from typing import Tuple
@@ -161,6 +162,8 @@ def main() -> None:
         save_on_each_node=False,
     )
 
+    trainer_kwargs = dict(
+        model=model,
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
@@ -168,6 +171,30 @@ def main() -> None:
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         peft_config=peft_config,
+    )
+
+    trainer_signature = inspect.signature(SFTTrainer.__init__)
+    if "tokenizer" in trainer_signature.parameters:
+        trainer_kwargs["tokenizer"] = tokenizer
+    if "max_seq_length" in trainer_signature.parameters:
+        trainer_kwargs["max_seq_length"] = 2048
+    if "dataset_text_field" in trainer_signature.parameters and "dataset_text_field" not in trainer_kwargs:
+        trainer_kwargs["dataset_text_field"] = "text"
+
+    trainer = SFTTrainer(**trainer_kwargs)
+
+    if is_main_process:
+        print("Starting training...")
+    trainer.train()
+
+    accelerator.wait_for_everyone()
+    if is_main_process:
+        print("Training finished. Saving adapters...")
+    trainer.save_model(OUTPUT_DIR)
+
+    if is_main_process:
+        print("All done!")
+
         max_seq_length=2048,
     )
 

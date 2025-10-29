@@ -35,6 +35,8 @@ spec:
                     git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
                   fi
                   cd /workspace/distrbuted_training_tools
+                  python -m pip install --upgrade pip
+                  python -m pip install --no-cache-dir -r llm_finetune/setup_and_data/requirements.txt
                   torchrun \
                     --nproc_per_node=8 \
                     --nnodes=2 \
@@ -88,6 +90,8 @@ spec:
                     git clone https://github.com/IamNirmata/distrbuted_training_tools.git /workspace/distrbuted_training_tools
                   fi
                   cd /workspace/distrbuted_training_tools
+                  python -m pip install --upgrade pip
+                  python -m pip install --no-cache-dir -r llm_finetune/setup_and_data/requirements.txt
                   torchrun \
                     --nproc_per_node=8 \
                     --nnodes=2 \
