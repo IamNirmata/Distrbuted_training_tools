@@ -81,6 +81,7 @@ def main() -> None:
     if tokenizer.pad_token is None:
         tokenizer.add_special_tokens({"pad_token": CUSTOM_PAD_TOKEN})
         tokenizer.pad_token = CUSTOM_PAD_TOKEN
+        tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids(CUSTOM_PAD_TOKEN)
         if is_main_process:
             print(f"Added custom pad token: {CUSTOM_PAD_TOKEN}")
     tokenizer.padding_side = "right"
@@ -106,13 +107,13 @@ def main() -> None:
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
+        bnb_4bit_compute_dtype=torch.float16,
         bnb_4bit_use_double_quant=True,
     )
 
     model_kwargs = dict(
         quantization_config=bnb_config,
-        torch_dtype=torch.bfloat16,
+        torch_dtype=torch.float16,
         trust_remote_code=True,
     )
     if os.environ.get("USE_FLASH_ATTENTION", "0") == "1":
@@ -164,10 +165,11 @@ def main() -> None:
         logging_steps=10,
         save_steps=250,
         learning_rate=1e-4,
-        bf16=True,
-        fp16=False,
+        bf16=False,
+        fp16=True,
         save_on_each_node=False,
         gradient_checkpointing_kwargs={"use_reentrant": False},
+        ddp_find_unused_parameters=False,
     )
 
     trainer_kwargs = dict(
