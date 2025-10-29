@@ -13,7 +13,7 @@ for host in ${MASTER_ADDR//,/ }; do echo "$host slots=8"; done >> /opt/hostfile
 
 
 
-
+pip install --upgrade trl
 pip install -U datasets
 pip install -U wandb transformers peft bitsandbytes accelerate huggingface_hub trl
 python -m pip install --upgrade pip
