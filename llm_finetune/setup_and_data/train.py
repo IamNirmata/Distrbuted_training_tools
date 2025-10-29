@@ -226,7 +226,7 @@ training_arguments = SFTConfig(
     warmup_ratio=0.1,
     lr_scheduler_type="linear",
     
-    max_seq_length=2048, # From hf_doc.md
+    # max_seq_length=2048, # From hf_doc.md
     
     # --- Distributed Training & Logging ---
     dataset_text_field="text",
@@ -251,6 +251,7 @@ trainer = SFTTrainer(
     eval_dataset=eval_dataset,
     peft_config=peft_config,
     args=training_arguments,
+    max_seq_length=2048,
 )
 
 # --- 7. Train ---
