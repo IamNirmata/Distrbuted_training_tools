@@ -189,7 +189,7 @@ model.resize_token_embeddings(len(tokenizer))
 model.config.pad_token_id = tokenizer.pad_token_id
 
 # Prepare model for k-bit training
-model = prepare_model_for_kbit_training(model)
+# model = prepare_model_for_kbit_training(model)
 model.config.use_cache = False
 
 # PEFT (LoRA) config
