@@ -160,41 +160,31 @@ def main() -> None:
     elif is_main_process:
         print("Using standard attention implementation")
 
-
-
+    # --- Model Loading and Dtype Correction ---
     if is_main_process:
-            print("Loading base model...")
-        model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **model_kwargs)
+        print("Loading base model...")
+    model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **model_kwargs)
 
-        model.resize_token_embeddings(len(tokenizer))
-        model.config.pad_token_id = tokenizer.pad_token_id
+    model.resize_token_embeddings(len(tokenizer))
+    model.config.pad_token_id = tokenizer.pad_token_id
 
-        # Run this first. It enables gradient checkpointing and 
-        # casts LayerNorms/lm_head to float32 (which we will override).
-        model = prepare_model_for_kbit_training(model)
+    # Run this first. It enables gradient checkpointing and 
+    # casts LayerNorms/lm_head to float32 (which we will override).
+    model = prepare_model_for_kbit_training(model)
 
-        # --- THE FIX: Override dtypes ---
-        # Manually cast the lm_head (which is not 4-bit) to bfloat16
-        # to match the `torch_dtype` of the rest of the model.
-        if hasattr(model, "lm_head"):
-            model.lm_head = model.lm_head.to(torch.bfloat16)
+    # --- THE FIX: Override dtypes ---
+    # Manually cast the lm_head (which is not 4-bit) to bfloat16
+    # to match the `torch_dtype` of the rest of the model.
+    if hasattr(model, "lm_head"):
+        model.lm_head = model.lm_head.to(torch.bfloat16)
 
-        # Manually cast all LayerNorms to bfloat16
-        for name, module in model.named_modules():
-            if "norm" in name:
-                module = module.to(torch.bfloat16)
-        # --- END FIX ---
-                
-        model.config.use_cache = False
-
-
-
-
-
-
-
-
-
+    # Manually cast all LayerNorms to bfloat16
+    for name, module in model.named_modules():
+        if "norm" in name:
+            module = module.to(torch.bfloat16)
+    # --- END FIX ---
+            
+    model.config.use_cache = False
 
     # --- PEFT Configuration ---
     peft_config = LoraConfig(
@@ -250,7 +240,7 @@ def main() -> None:
         fp16=False, 
         
         save_on_each_node=False,
-        gradient_checkpointing=False,
+        gradient_checkpointing=False, # Disable old method
         ddp_find_unused_parameters=False,
     )
 
