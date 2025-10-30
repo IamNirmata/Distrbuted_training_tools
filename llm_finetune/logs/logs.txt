@@ -1,0 +1,108 @@
+2025-10-29 23:25:30
+{'loss': 0.1655, 'grad_norm': 0.2015368789434433, 'learning_rate': 5.122222222222223e-05, 'entropy': 0.18652635924518107, 'num_tokens': 52710484.0, 'mean_token_accuracy': 0.9596475221216678, 'epoch': 2.56}
+2025-10-29 23:26:36
+{'loss': 0.1651, 'grad_norm': 0.18767128884792328, 'learning_rate': 5.011111111111111e-05, 'entropy': 0.18464752826839687, 'num_tokens': 53678775.0, 'mean_token_accuracy': 0.959725309163332, 'epoch': 2.61}
+2025-10-29 23:27:43
+{'loss': 0.1636, 'grad_norm': 0.19528916478157043, 'learning_rate': 4.9e-05, 'entropy': 0.1832749679684639, 'num_tokens': 54660119.0, 'mean_token_accuracy': 0.9599271588027477, 'epoch': 2.65}
+2025-10-29 23:28:50
+{'loss': 0.163, 'grad_norm': 0.21372634172439575, 'learning_rate': 4.7888888888888886e-05, 'entropy': 0.182130896858871, 'num_tokens': 55638336.0, 'mean_token_accuracy': 0.9600123226642608, 'epoch': 2.7}
+2025-10-29 23:29:58
+{'loss': 0.166, 'grad_norm': 0.2133236825466156, 'learning_rate': 4.677777777777778e-05, 'entropy': 0.18532323986291885, 'num_tokens': 56609175.0, 'mean_token_accuracy': 0.9592731423676014, 'epoch': 2.75}
+2025-10-29 23:31:03
+{'loss': 0.1623, 'grad_norm': 0.19933506846427917, 'learning_rate': 4.566666666666667e-05, 'entropy': 0.18252118863165379, 'num_tokens': 57559574.0, 'mean_token_accuracy': 0.9600457869470119, 'epoch': 2.8}
+2025-10-29 23:32:07
+{'loss': 0.1633, 'grad_norm': 0.20163117349147797, 'learning_rate': 4.4555555555555555e-05, 'entropy': 0.18204999659210444, 'num_tokens': 58520566.0, 'mean_token_accuracy': 0.9597069501876831, 'epoch': 2.84}
+2025-10-29 23:33:14
+{'loss': 0.1623, 'grad_norm': 0.17852702736854553, 'learning_rate': 4.344444444444445e-05, 'entropy': 0.18053788561373948, 'num_tokens': 59505710.0, 'mean_token_accuracy': 0.9603034511208535, 'epoch': 2.89}
+2025-10-29 23:34:18
+{'loss': 0.1598, 'grad_norm': 0.20525307953357697, 'learning_rate': 4.233333333333334e-05, 'entropy': 0.17836787663400172, 'num_tokens': 60472512.0, 'mean_token_accuracy': 0.9607057124376297, 'epoch': 2.94}
+2025-10-29 23:35:26
+{'loss': 0.1589, 'grad_norm': 0.19586165249347687, 'learning_rate': 4.1222222222222224e-05, 'entropy': 0.17645448725670576, 'num_tokens': 61458766.0, 'mean_token_accuracy': 0.9610540322959423, 'epoch': 2.99}
+2025-10-29 23:36:34
+{'loss': 0.1556, 'grad_norm': 0.19719615578651428, 'learning_rate': 4.011111111111111e-05, 'entropy': 0.174007623270154, 'num_tokens': 62442684.0, 'mean_token_accuracy': 0.9616217449307441, 'epoch': 3.03}
+2025-10-29 23:37:41
+{'loss': 0.1541, 'grad_norm': 0.1955759972333908, 'learning_rate': 3.9000000000000006e-05, 'entropy': 0.17418909315019845, 'num_tokens': 63423234.0, 'mean_token_accuracy': 0.9616335794329643, 'epoch': 3.08}
+2025-10-29 23:38:47
+{'loss': 0.1537, 'grad_norm': 0.21921731531620026, 'learning_rate': 3.7888888888888894e-05, 'entropy': 0.1709398226812482, 'num_tokens': 64394338.0, 'mean_token_accuracy': 0.9618505448102951, 'epoch': 3.13}
+2025-10-29 23:39:53
+{'loss': 0.1539, 'grad_norm': 0.189276322722435, 'learning_rate': 3.677777777777778e-05, 'entropy': 0.17244698852300644, 'num_tokens': 65370547.0, 'mean_token_accuracy': 0.9617132127285004, 'epoch': 3.18}
+2025-10-29 23:40:59
+{'loss': 0.1544, 'grad_norm': 0.19956403970718384, 'learning_rate': 3.566666666666667e-05, 'entropy': 0.17285574413836002, 'num_tokens': 66348897.0, 'mean_token_accuracy': 0.9615521110594273, 'epoch': 3.22}
+2025-10-29 23:42:06
+{'loss': 0.1588, 'grad_norm': 0.1689339280128479, 'learning_rate': 3.4555555555555556e-05, 'entropy': 0.1774222135543823, 'num_tokens': 67318262.0, 'mean_token_accuracy': 0.9608898267149926, 'epoch': 3.27}
+2025-10-29 23:43:14
+{'loss': 0.1513, 'grad_norm': 0.1803378462791443, 'learning_rate': 3.3444444444444443e-05, 'entropy': 0.1679781459271908, 'num_tokens': 68302808.0, 'mean_token_accuracy': 0.9624306961894036, 'epoch': 3.32}
+2025-10-29 23:44:20
+{'loss': 0.1499, 'grad_norm': 0.2053382247686386, 'learning_rate': 3.233333333333333e-05, 'entropy': 0.1694181000813842, 'num_tokens': 69284602.0, 'mean_token_accuracy': 0.9623808264732361, 'epoch': 3.36}
+2025-10-29 23:45:26
+{'loss': 0.1506, 'grad_norm': 0.17851436138153076, 'learning_rate': 3.1222222222222225e-05, 'entropy': 0.1687767393887043, 'num_tokens': 70260423.0, 'mean_token_accuracy': 0.9622680105268955, 'epoch': 3.41}
+2025-10-29 23:46:33
+{'loss': 0.1537, 'grad_norm': 0.17175643146038055, 'learning_rate': 3.0111111111111113e-05, 'entropy': 0.17081122510135174, 'num_tokens': 71228811.0, 'mean_token_accuracy': 0.9618205077946186, 'epoch': 3.46}
+2025-10-29 23:47:40
+{'loss': 0.1545, 'grad_norm': 0.22405001521110535, 'learning_rate': 2.9e-05, 'entropy': 0.17191405426710843, 'num_tokens': 72209832.0, 'mean_token_accuracy': 0.9615591950714588, 'epoch': 3.51}
+2025-10-29 23:48:47
+{'loss': 0.1511, 'grad_norm': 0.19841833412647247, 'learning_rate': 2.788888888888889e-05, 'entropy': 0.1682279586791992, 'num_tokens': 73187711.0, 'mean_token_accuracy': 0.9621019035577774, 'epoch': 3.55}
+2025-10-29 23:48:49
+/usr/local/lib/python3.10/dist-packages/torch/utils/checkpoint.py:1398: FutureWarning: `torch.cpu.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cpu', args...)` instead.
+2025-10-29 23:48:49
+  with device_autocast_ctx, torch.cpu.amp.autocast(**cpu_autocast_kwargs), recompute_context:  # type: ignore[attr-defined]
+2025-10-29 23:48:55
+100%|██████████████████████████████| 1000/1000 [1:50:29<00:00,  6.57s/it]wandb: Adding directory to artifact (/mnt/data/output/llama-3-8b-function-calling/checkpoint-1000)... Done. 0.3s
+2025-10-29 23:49:53
+{'loss': 0.1507, 'grad_norm': 0.184287428855896, 'learning_rate': 2.677777777777778e-05, 'entropy': 0.16675536781549455, 'num_tokens': 74156087.0, 'mean_token_accuracy': 0.9625972002744675, 'epoch': 3.6}
+2025-10-29 23:50:59
+{'loss': 0.1506, 'grad_norm': 0.15377086400985718, 'learning_rate': 2.5666666666666666e-05, 'entropy': 0.1676732361316681, 'num_tokens': 75129398.0, 'mean_token_accuracy': 0.9623423270881176, 'epoch': 3.65}
+2025-10-29 23:52:06
+{'loss': 0.1512, 'grad_norm': 0.1742565929889679, 'learning_rate': 2.4555555555555557e-05, 'entropy': 0.1696332586929202, 'num_tokens': 76114819.0, 'mean_token_accuracy': 0.9622994549572468, 'epoch': 3.7}
+2025-10-29 23:53:13
+{'loss': 0.1529, 'grad_norm': 0.19295303523540497, 'learning_rate': 2.3444444444444448e-05, 'entropy': 0.16962653622031212, 'num_tokens': 77075959.0, 'mean_token_accuracy': 0.9618802979588509, 'epoch': 3.74}
+2025-10-29 23:54:19
+{'loss': 0.1502, 'grad_norm': 0.16631248593330383, 'learning_rate': 2.2333333333333335e-05, 'entropy': 0.16768930107355118, 'num_tokens': 78039175.0, 'mean_token_accuracy': 0.9623470902442932, 'epoch': 3.79}
+2025-10-29 23:55:24
+{'loss': 0.151, 'grad_norm': 0.1814551204442978, 'learning_rate': 2.1222222222222223e-05, 'entropy': 0.16817589495331048, 'num_tokens': 79006515.0, 'mean_token_accuracy': 0.9623072415590286, 'epoch': 3.84}
+2025-10-29 23:56:29
+{'loss': 0.1492, 'grad_norm': 0.1698514223098755, 'learning_rate': 2.011111111111111e-05, 'entropy': 0.16629621870815753, 'num_tokens': 79984408.0, 'mean_token_accuracy': 0.9626175701618195, 'epoch': 3.89}
+2025-10-29 23:57:35
+{'loss': 0.1493, 'grad_norm': 0.15413260459899902, 'learning_rate': 1.9e-05, 'entropy': 0.16635390240699052, 'num_tokens': 80960641.0, 'mean_token_accuracy': 0.9626275114715099, 'epoch': 3.93}
+2025-10-29 23:58:41
+{'loss': 0.1516, 'grad_norm': 0.16798017919063568, 'learning_rate': 1.788888888888889e-05, 'entropy': 0.16695684846490622, 'num_tokens': 81930764.0, 'mean_token_accuracy': 0.9622757114470005, 'epoch': 3.98}
+2025-10-29 23:59:47
+{'loss': 0.1457, 'grad_norm': 0.16230963170528412, 'learning_rate': 1.677777777777778e-05, 'entropy': 0.1639817213639617, 'num_tokens': 82913323.0, 'mean_token_accuracy': 0.9633054092526436, 'epoch': 4.03}
+2025-10-30 00:00:52
+{'loss': 0.1447, 'grad_norm': 0.17438113689422607, 'learning_rate': 1.5666666666666667e-05, 'entropy': 0.16225786227732897, 'num_tokens': 83883232.0, 'mean_token_accuracy': 0.9635340005159378, 'epoch': 4.08}
+2025-10-30 00:01:58
+{'loss': 0.1433, 'grad_norm': 0.17238804697990417, 'learning_rate': 1.4555555555555556e-05, 'entropy': 0.15977490544319153, 'num_tokens': 84848548.0, 'mean_token_accuracy': 0.9638752296566964, 'epoch': 4.12}
+2025-10-30 00:03:04
+{'loss': 0.1443, 'grad_norm': 0.17786960303783417, 'learning_rate': 1.3444444444444445e-05, 'entropy': 0.16219552159309386, 'num_tokens': 85832085.0, 'mean_token_accuracy': 0.9636179022490978, 'epoch': 4.17}
+2025-10-30 00:04:08
+{'loss': 0.1485, 'grad_norm': 0.1722945123910904, 'learning_rate': 1.2333333333333334e-05, 'entropy': 0.16435577180236577, 'num_tokens': 86782337.0, 'mean_token_accuracy': 0.9626224294304848, 'epoch': 4.22}
+2025-10-30 00:05:14
+{'loss': 0.1458, 'grad_norm': 0.16589994728565216, 'learning_rate': 1.1222222222222224e-05, 'entropy': 0.1629702474921942, 'num_tokens': 87746059.0, 'mean_token_accuracy': 0.9634878642857074, 'epoch': 4.27}
+2025-10-30 00:06:20
+{'loss': 0.1473, 'grad_norm': 0.1602305918931961, 'learning_rate': 1.0111111111111111e-05, 'entropy': 0.1654105331748724, 'num_tokens': 88708957.0, 'mean_token_accuracy': 0.9630348429083824, 'epoch': 4.31}
+2025-10-30 00:07:26
+{'loss': 0.1441, 'grad_norm': 0.1716925948858261, 'learning_rate': 9e-06, 'entropy': 0.1614135630428791, 'num_tokens': 89681783.0, 'mean_token_accuracy': 0.9636055402457714, 'epoch': 4.36}
+2025-10-30 00:08:34
+{'loss': 0.1427, 'grad_norm': 0.15853166580200195, 'learning_rate': 7.88888888888889e-06, 'entropy': 0.15933994427323342, 'num_tokens': 90661766.0, 'mean_token_accuracy': 0.964167595654726, 'epoch': 4.41}
+2025-10-30 00:09:40
+{'loss': 0.1451, 'grad_norm': 0.1525234431028366, 'learning_rate': 6.777777777777779e-06, 'entropy': 0.16113180629909038, 'num_tokens': 91647510.0, 'mean_token_accuracy': 0.963829868286848, 'epoch': 4.45}
+2025-10-30 00:10:46
+{'loss': 0.1454, 'grad_norm': 0.15435239672660828, 'learning_rate': 5.666666666666667e-06, 'entropy': 0.16245713979005813, 'num_tokens': 92618749.0, 'mean_token_accuracy': 0.963538383692503, 'epoch': 4.5}
+2025-10-30 00:11:52
+{'loss': 0.1473, 'grad_norm': 0.17173047363758087, 'learning_rate': 4.555555555555556e-06, 'entropy': 0.16429967619478703, 'num_tokens': 93602321.0, 'mean_token_accuracy': 0.9631592042744159, 'epoch': 4.55}
+2025-10-30 00:12:58
+{'loss': 0.1422, 'grad_norm': 0.1581236571073532, 'learning_rate': 3.4444444444444444e-06, 'entropy': 0.1592757163569331, 'num_tokens': 94583055.0, 'mean_token_accuracy': 0.9640771754086017, 'epoch': 4.6}
+2025-10-30 00:14:05
+{'loss': 0.1419, 'grad_norm': 0.16947191953659058, 'learning_rate': 2.3333333333333336e-06, 'entropy': 0.15793311949819328, 'num_tokens': 95572408.0, 'mean_token_accuracy': 0.9642876014113426, 'epoch': 4.64}
+2025-10-30 00:15:12
+{'loss': 0.145, 'grad_norm': 0.17010913789272308, 'learning_rate': 1.2222222222222223e-06, 'entropy': 0.16167287901043892, 'num_tokens': 96540711.0, 'mean_token_accuracy': 0.963732299208641, 'epoch': 4.69}
+2025-10-30 00:16:18
+{'loss': 0.1438, 'grad_norm': 0.16086694598197937, 'learning_rate': 1.1111111111111112e-07, 'entropy': 0.16141732279211282, 'num_tokens': 97513972.0, 'mean_token_accuracy': 0.9638679847121239, 'epoch': 4.74}
+2025-10-30 00:16:20
+100%|██████████████████████████████| 1000/1000 [1:50:32<00:00,  6.63s/it]
+2025-10-30 00:16:20
+{'train_runtime': 6633.5201, 'train_samples_per_second': 38.592, 'train_steps_per_second': 0.151, 'train_loss': 0.2815267630815506, 'epoch': 4.74}
+2025-10-30 00:16:22
+Training finished. Saving adapters...
+2025-10-30 00:16:22
+All done!
