@@ -1,10 +1,4 @@
-"""
-Full-FSDP (no 4-bit) multi-node fine-tuning for Meta Llama 3 with LoRA.
-- Reuse EOS as PAD (no resize noise)
-- Pre-wrap LoRA
-- Cast ALL params/buffers to bf16 before FSDP (no mixed-dtype flatten)
-- Minimal, version-friendly FSDP config
-"""
+
 
 import os, json, inspect
 from typing import Tuple

@@ -1,12 +1,3 @@
-"""
-Multi-node FSDP fine-tuning script for Meta Llama 3 using PyTorch DDP/FSDP.
-This script is intended to be launched with `torchrun`.
-
-It uses FSDP (Fully Sharded Data Parallelism) to shard the model, 
-gradients, and optimizer state across all GPUs in all nodes.
-This achieves the memory-saving goal of "tensor parallelism inside the node"
-and the speed-up goal of "data parallel between nodes".
-"""
 
 import inspect
 import json
