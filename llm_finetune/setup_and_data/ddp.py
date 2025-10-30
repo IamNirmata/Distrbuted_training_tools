@@ -1,7 +1,4 @@
-"""
-Simplified multi-node fine-tuning script for Meta Llama 3 using PyTorch DDP.
-This script is intended to be launched with `torchrun`.
-"""
+
 
 import inspect
 import json
@@ -81,8 +78,6 @@ def _format_example(example: dict, eos_token: str) -> dict:
 
 
 def _load_splits(path: str) -> Tuple[Dataset, Dataset]:
-    # This function is DDP-safe. `load_from_disk` is fine.
-    # `train_test_split` is also fine as it's deterministic with `seed`.
     data = load_from_disk(path)
 
     if isinstance(data, DatasetDict):
@@ -99,12 +94,9 @@ def _load_splits(path: str) -> Tuple[Dataset, Dataset]:
 
 
 def main() -> None:
-    # --- DDP Setup ---
-    # Replaces `Accelerator()`
+
     global_rank, local_rank, is_main_process = _setup_ddp()
 
-    # --- Tokenizer Loading ---
-    # No changes needed here, but we use `is_main_process` for logging.
     if is_main_process:
         print("Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
@@ -118,9 +110,6 @@ def main() -> None:
     tokenizer.padding_side = "right"
 
     # --- Dataset Loading & Formatting ---
-    # The `datasets` library is DDP-aware. `.map()` and `.filter()`
-    # will only run on the main process, and other processes will
-    # load the cached results.
     train_raw, eval_raw = _load_splits(DATASET_PATH)
     
     train_dataset = train_raw.map(
@@ -152,8 +141,7 @@ def main() -> None:
         quantization_config=bnb_config,
         torch_dtype=torch.float16,
         trust_remote_code=True,
-        # NOTE: Do NOT set `device_map` here. `SFTTrainer` will handle
-        # device placement based on the DDP `local_rank`.
+.
     )
     if os.environ.get("USE_FLASH_ATTENTION", "0") == "1":
         model_kwargs["attn_implementation"] = "flash_attention_2"
@@ -163,8 +151,6 @@ def main() -> None:
         print("Using standard attention implementation")
 
     # --- Model Loading ---
-    # `torch.cuda.set_device(local_rank)` from `_setup_ddp` ensures
-    # the model is loaded onto the correct GPU.
     if is_main_process:
         print("Loading base model...")
     model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **model_kwargs)
@@ -195,8 +181,6 @@ def main() -> None:
     )
 
     # --- Training Configuration ---
-    # `SFTConfig` (subclass of `TrainingArguments`) will automatically
-    # detect the DDP environment from `torchrun` env vars.
     training_args = SFTConfig(
         output_dir=OUTPUT_DIR,
         dataset_text_field="text",
@@ -216,8 +200,7 @@ def main() -> None:
         save_on_each_node=False,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         ddp_find_unused_parameters=False,
-        # `local_rank` is set automatically by `TrainingArguments`
-        # when it detects the `LOCAL_RANK` env var.
+
     )
 
     trainer_kwargs = dict(
@@ -238,8 +221,6 @@ def main() -> None:
         trainer_kwargs["dataset_text_field"] = "text"
 
     # --- Trainer Initialization ---
-    # `SFTTrainer` will handle wrapping the model with DDP
-    # and setting up the DistributedSampler for data loading.
     trainer = SFTTrainer(**trainer_kwargs)
 
     # --- Training ---
@@ -248,14 +229,12 @@ def main() -> None:
     trainer.train()
 
     # --- Synchronization and Saving ---
-    # Replaces `accelerator.wait_for_everyone()`
     dist.barrier()
     
     if is_main_process:
         print("Training finished. Saving adapters...")
         
     # `trainer.save_model` is DDP-aware and will only save
-    # on the main process (rank 0).
     trainer.save_model(OUTPUT_DIR)
 
     if is_main_process:

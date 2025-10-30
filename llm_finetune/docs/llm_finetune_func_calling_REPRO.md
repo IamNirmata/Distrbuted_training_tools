@@ -166,3 +166,12 @@ with torch.no_grad():
     out = model.generate(**inputs, max_new_tokens=256)
 print(tok.decode(out[0], skip_special_tokens=False))
 ```
+
+## Improvements and next steps
+- Optimzed multistage built docker image with dependencies pre-installed( may be the model and dataset too)
+- Measure cpu and gpu timings
+- kernel level profiling with nsight systems
+- There is more headroom to for larger batch sizes with FSDP
+- Latency hiding with DDP and FSDP
+- prefetching data to GPU memory
+- Newer Llama versions are available
