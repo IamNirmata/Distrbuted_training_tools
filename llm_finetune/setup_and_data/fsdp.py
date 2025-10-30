@@ -206,7 +206,7 @@ def main() -> None:
         optim="adamw_torch",
         
         # 2. Enable FSDP
-        fsdp="full",  # "full" is equivalent to ZeRO-3
+        fsdp="full_shard",  # "full" is equivalent to ZeRO-3
         fsdp_config={
             "fsdp_timeout": 1800,
             # This policy tells FSDP how to wrap LoRA layers correctly
