@@ -165,6 +165,7 @@ def main() -> None:
     model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **model_kwargs)
 
     model.resize_token_embeddings(len(tokenizer))
+    model = model.to(torch.bfloat16)
     model.config.pad_token_id = tokenizer.pad_token_id
     
     # We do NOT call `prepare_model_for_kbit_training` here.
