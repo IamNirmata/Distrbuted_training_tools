@@ -1,66 +1,48 @@
 """
-Multi-node FSDP fine-tuning script for Meta Llama 3 using PyTorch DDP/FSDP.
-Launch with `torchrun`.
+Full-FSDP (no 4-bit) multi-node fine-tuning for Meta Llama 3 with LoRA.
+Launch with torchrun.
 
-This uses FSDP (Fully Sharded Data Parallelism) together with QLoRA (bitsandbytes 4-bit)
-so that base weights remain quantized while LoRA adapters are trained and sharded.
-
-Key points:
-- Choose the compute dtype at load time via `dtype=...` in `from_pretrained`.
-- Do NOT call `model.to(...)` on a bitsandbytes-quantized model after loading.
-- FSDP wraps PEFT layers; base 4-bit weights are not fully sharded (expected for QLoRA).
+Key fixes:
+- Reuse EOS as PAD to avoid resize warnings and dtype surprises.
+- Pre-wrap PEFT (LoRA) so we can force adapter dtypes to bf16.
+- Cast ALL params/buffers to bf16 before FSDP -> no mixed-dtype flatten errors.
+- use_orig_params=True and transformer wrap hint for stable wrapping.
 """
 
-import inspect
-import json
 import os
+import json
+import inspect
 from typing import Tuple
 
 import torch
 import torch.distributed as dist
 from datasets import Dataset, DatasetDict, load_from_disk
-from peft import LoraConfig
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import LoraConfig, get_peft_model
 from trl import SFTConfig, SFTTrainer
 
-# --- Environment Configuration ---
+# -------------------- Environment --------------------
 MODEL_PATH = os.environ.get("MODEL_PATH", "/mnt/data/models/Meta-Llama-3-8B-Instruct")
 DATASET_PATH = os.environ.get("DATASET_PATH", "/mnt/data/datasets/xlam-function-calling-60k")
-OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/mnt/data/output/llama-3-8b-function-calling-fsdp")
+OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "/mnt/data/output/llama-3-8b-function-calling-fsdp-no4")
 
 os.environ.setdefault("WANDB_PROJECT", "func_calls_llm")
 os.environ.setdefault("WANDB_ENTITY", "iamnirmata-microsoft")
 os.environ.setdefault("WANDB_LOG_MODEL", "checkpoint")
 
-# Llama 3 has <|eot_id|> token; we repurpose it as pad if tokenizer lacks one.
-CUSTOM_PAD_TOKEN = "<|eot_id|>"
-
-
 def _setup_ddp() -> Tuple[int, int, bool]:
-    """Initializes the distributed process group and sets the device."""
     if not dist.is_available() or not torch.cuda.is_available():
         raise RuntimeError("Distributed training requires torch.distributed and CUDA.")
-
-    # torchrun sets these env vars
     local_rank = int(os.environ["LOCAL_RANK"])
     global_rank = int(os.environ["RANK"])
-
-    # Initialize process group and pin GPU
     dist.init_process_group(backend="nccl")
     torch.cuda.set_device(local_rank)
-
     is_main = (global_rank == 0)
     if is_main:
-        print(
-            f"Initialized DDP/FSDP: World Size {dist.get_world_size()}, "
-            f"Rank {global_rank}, Local Rank {local_rank}",
-            flush=True,
-        )
+        print(f"Initialized DDP/FSDP: world={dist.get_world_size()} rank={global_rank} local_rank={local_rank}", flush=True)
     return global_rank, local_rank, is_main
 
-
 def _format_example(example: dict, eos_token: str) -> dict:
-    """Convert a raw xLAM row into the single 'text' field used for SFT."""
     try:
         query = example.get("query", "")
         tools_raw = example.get("tools", "[]")
@@ -68,29 +50,21 @@ def _format_example(example: dict, eos_token: str) -> dict:
 
         try:
             tools = "\n".join(str(item) for item in json.loads(tools_raw))
-        except (json.JSONDecodeError, TypeError):
+        except Exception:
             tools = str(tools_raw)
-
         try:
             answers = "\n".join(str(item) for item in json.loads(answers_raw))
-        except (json.JSONDecodeError, TypeError):
+        except Exception:
             answers = str(answers_raw)
 
-        text = (
-            f"<user>{query}</user>\n\n"
-            f"<tools>{tools}</tools>\n\n"
-            f"<calls>{answers}</calls>"
-            f"{eos_token}"
-        )
+        text = f"<user>{query}</user>\n\n<tools>{tools}</tools>\n\n<calls>{answers}</calls>{eos_token}"
         return {"text": text}
-    except Exception as exc:  # defensive
-        print(f"Failed to format example: {exc}", flush=True)
+    except Exception as e:
+        print(f"format error: {e}", flush=True)
         return {"text": ""}
-
 
 def _load_splits(path: str) -> Tuple[Dataset, Dataset]:
     data = load_from_disk(path)
-
     if isinstance(data, DatasetDict):
         train_split = data.get("train") or next(iter(data.values()))
         eval_split = data.get("validation") or data.get("test")
@@ -100,115 +74,105 @@ def _load_splits(path: str) -> Tuple[Dataset, Dataset]:
     else:
         split = data.train_test_split(test_size=0.1, seed=42)
         train_split, eval_split = split["train"], split["test"]
-
     return train_split, eval_split
 
-
 def main() -> None:
-    # --- DDP/FSDP Setup ---
     global_rank, local_rank, is_main = _setup_ddp()
 
-    # --- Tokenizer ---
+    # -------------------- Tokenizer --------------------
     if is_main:
         print("Loading tokenizer...", flush=True)
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH, trust_remote_code=True)
 
-    if tokenizer.pad_token is None:
-        tokenizer.add_special_tokens({"pad_token": CUSTOM_PAD_TOKEN})
-        tokenizer.pad_token = CUSTOM_PAD_TOKEN
-        tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids(CUSTOM_PAD_TOKEN)
-        if is_main:
-            print(f"Added custom pad token: {CUSTOM_PAD_TOKEN}", flush=True)
+    # Reuse EOS as PAD to avoid embedding resize (and dtype mismatches)
+    if tokenizer.pad_token_id is None:
+        if tokenizer.eos_token_id is not None:
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.pad_token_id = tokenizer.eos_token_id
+            if is_main:
+                print(f"Using EOS as PAD: pad_token_id={tokenizer.pad_token_id}", flush=True)
+        else:
+            # Fallback: if model truly has no EOS, set a generic pad token
+            tokenizer.add_special_tokens({"pad_token": "<|pad|>"})
+            tokenizer.pad_token = "<|pad|>"
+            tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids("<|pad|>")
+            if is_main:
+                print(f"Added PAD token <|pad|> with id={tokenizer.pad_token_id}", flush=True)
     tokenizer.padding_side = "right"
 
-    # --- Dataset load & format ---
+    # -------------------- Data --------------------
     train_raw, eval_raw = _load_splits(DATASET_PATH)
-
-    train_dataset = train_raw.map(
+    train_ds = train_raw.map(
         lambda row: _format_example(row, tokenizer.eos_token),
         remove_columns=train_raw.column_names,
         desc="Formatting train split",
     )
-    eval_dataset = eval_raw.map(
+    eval_ds = eval_raw.map(
         lambda row: _format_example(row, tokenizer.eos_token),
         remove_columns=eval_raw.column_names,
         desc="Formatting eval split",
     )
-    train_dataset = train_dataset.filter(lambda row: len(row["text"]) > 0)
-    eval_dataset = eval_dataset.filter(lambda row: len(row["text"]) > 0)
+    train_ds = train_ds.filter(lambda r: len(r["text"]) > 0)
+    eval_ds = eval_ds.filter(lambda r: len(r["text"]) > 0)
 
     if is_main:
-        print(
-            f"Train samples: {len(train_dataset)} | Eval samples: {len(eval_dataset)}",
-            flush=True,
-        )
-        print("Example formatted prompt:\n", train_dataset[0]["text"][:400], "...\n", sep="", flush=True)
+        print(f"Train samples: {len(train_ds)} | Eval samples: {len(eval_ds)}", flush=True)
+        print("Example formatted prompt:\n", train_ds[0]["text"][:400], "...\n", sep="", flush=True)
 
-    # --- Model Configuration (QLoRA + FSDP) ---
-    # Choose compute dtype at load time; do not call model.to(...) later.
-    bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-        # Keep bf16 quant storage when mixing FSDP and QLoRA on many GPUs
-        bnb_4bit_quant_storage=torch.bfloat16,
-    )
-
+    # -------------------- Base Model (no 4-bit) --------------------
+    # Load directly in bf16. We'll force every param/buffer to bf16 next.
     model_kwargs = dict(
-        quantization_config=bnb_config,
-        dtype=torch.bfloat16,           # <— use dtype=..., not torch_dtype=...
+        dtype=torch.bfloat16,
         trust_remote_code=True,
     )
-
     if os.environ.get("USE_FLASH_ATTENTION", "0") == "1":
         model_kwargs["attn_implementation"] = "flash_attention_2"
         if is_main:
-            print("Using flash_attention_2 kernels", flush=True)
-    elif is_main:
-        print("Using standard attention implementation", flush=True)
+            print("Using flash_attention_2", flush=True)
+    else:
+        if is_main:
+            print("Using standard attention", flush=True)
 
     if is_main:
         print("Loading base model...", flush=True)
     model = AutoModelForCausalLM.from_pretrained(MODEL_PATH, **model_kwargs)
 
-    # Resize embeddings if pad token was added
-    model.resize_token_embeddings(len(tokenizer))
-    model.config.pad_token_id = tokenizer.pad_token_id
+    # Make sure PAD ids are aligned on both configs
+    if tokenizer.pad_token_id is not None:
+        model.config.pad_token_id = tokenizer.pad_token_id
+        if hasattr(model, "generation_config") and model.generation_config is not None:
+            model.generation_config.pad_token_id = tokenizer.pad_token_id
 
-    # Enable gradient checkpointing for memory saving
     model.config.use_cache = False
     if hasattr(model, "gradient_checkpointing_enable"):
         model.gradient_checkpointing_enable()
 
-    # Quick sanity prints on rank 0
-    if is_main:
-        print("is_loaded_in_4bit:", getattr(model, "is_loaded_in_4bit", False), flush=True)
-        try:
-            lm_w = model.get_output_embeddings().weight
-            print("lm_head weight dtype:", lm_w.dtype, flush=True)
-        except Exception:
-            pass
-
-    # --- PEFT (LoRA) ---
+    # -------------------- LoRA (pre-wrap so we can cast dtypes) --------------------
     peft_config = LoraConfig(
         r=16,
         lora_alpha=16,
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
-        target_modules=[
-            "q_proj",
-            "k_proj",
-            "v_proj",
-            "o_proj",
-            "gate_proj",
-            "down_proj",
-            "up_proj",
-        ],
+        target_modules=["q_proj","k_proj","v_proj","o_proj","gate_proj","down_proj","up_proj"],
     )
+    model = get_peft_model(model, peft_config)
 
-    # --- Training / FSDP Config ---
+    # -------------------- Force uniform bf16 dtypes --------------------
+    num_fp32_p = 0
+    for n, p in model.named_parameters():
+        if p.dtype != torch.bfloat16:
+            p.data = p.data.to(torch.bfloat16)
+            num_fp32_p += 1
+    num_fp32_b = 0
+    for b in model.buffers():
+        if b.dtype == torch.float32:
+            b.data = b.data.to(torch.bfloat16)
+            num_fp32_b += 1
+    if is_main:
+        print(f"Casted params to bf16: {num_fp32_p}, buffers casted: {num_fp32_b}", flush=True)
+
+    # -------------------- Training / FSDP --------------------
     training_args = SFTConfig(
         output_dir=OUTPUT_DIR,
         dataset_text_field="text",
@@ -219,15 +183,18 @@ def main() -> None:
         per_device_eval_batch_size=4,
         gradient_accumulation_steps=8,
 
-        # FSDP: full_shard (ZeRO-3-like) for PEFT params, base 4-bit weights remain quantized
+        # Full sharding of trainable params (LoRA); base model is bf16 params.
+        fs_root="/tmp",  # optional: helps some envs
         optim="adamw_torch",
         fsdp="full_shard",
         fsdp_config={
             "fsdp_timeout": 1800,
+            "use_orig_params": True,  # avoid flat-param dtype issues
             "fsdp_auto_wrap_policy": "TRANSFORMER_BASED_WRAP",
-            # pass PEFT config so FSDP knows how to wrap LoRA layers
-            "fsdp_peft_config": peft_config,
+            "fsdp_transformer_layer_cls_to_wrap": ["LlamaDecoderLayer"],
             "activation_checkpointing": True,
+            # still pass for TRL to understand LoRA wrapping boundaries
+            "fsdp_peft_config": peft_config,
         },
 
         max_steps=1000,
@@ -236,31 +203,24 @@ def main() -> None:
         save_steps=250,
         learning_rate=1e-4,
 
-        # prefer bf16 with FSDP; fp16 off
         bf16=True,
         fp16=False,
 
         save_on_each_node=False,
-        # Align with model.gradient_checkpointing_enable()
         gradient_checkpointing=True,
         ddp_find_unused_parameters=False,
     )
 
     trainer_kwargs = dict(
-        model=model,
+        model=model,                 # already PEFT-wrapped
         args=training_args,
-        train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
-        peft_config=peft_config,
+        train_dataset=train_ds,
+        eval_dataset=eval_ds,
+        # NOTE: do NOT pass peft_config here again (we already wrapped)
+        tokenizer=tokenizer,
+        max_seq_length=2048,
+        dataset_text_field="text",
     )
-
-    trainer_signature = inspect.signature(SFTTrainer.__init__)
-    if "tokenizer" in trainer_signature.parameters:
-        trainer_kwargs["tokenizer"] = tokenizer
-    if "max_seq_length" in trainer_signature.parameters:
-        trainer_kwargs["max_seq_length"] = 2048
-    if "dataset_text_field" in trainer_signature.parameters and "dataset_text_field" not in trainer_kwargs:
-        trainer_kwargs["dataset_text_field"] = "text"
 
     trainer = SFTTrainer(**trainer_kwargs)
 
@@ -268,16 +228,13 @@ def main() -> None:
         print("Starting training...", flush=True)
     trainer.train()
 
-    # sync all ranks before saving
     dist.barrier()
-
     if is_main:
         print("Training finished. Saving adapters...", flush=True)
         trainer.save_model(OUTPUT_DIR)
         print(f"All done! Saved to: {OUTPUT_DIR}", flush=True)
 
     dist.destroy_process_group()
-
 
 if __name__ == "__main__":
     main()
