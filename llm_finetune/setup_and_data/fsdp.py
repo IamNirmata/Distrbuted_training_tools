@@ -213,6 +213,7 @@ def main() -> None:
             # This policy tells FSDP how to wrap LoRA layers correctly
             "fsdp_auto_wrap_policy": "TRANSFORMER_BASED_WRAP", 
             "fsdp_peft_config": peft_config, # Pass PEFT config here for FSDP
+            "activation_checkpointing": True, # Enable activation checkpointing
         },
         # === END FSDP CHANGES ===
 
@@ -227,7 +228,7 @@ def main() -> None:
         fp16=False, 
         
         save_on_each_node=False,
-        gradient_checkpointing_kwargs={"use_reentrant": False},
+        gradient_checkpointing=False,
         ddp_find_unused_parameters=False,
     )
 
