@@ -1,10 +1,10 @@
-# AI Assignment 16 — Fine-tuning Meta Llama 3 for Function Calling on 2× Nebius H100 Nodes (8× H100 per node)
+# Fine-tuning Meta Llama 3 for Function Calling on 2×8 H100 Nodes
 
 ## Executive summary
 - Goal: Fine-tune Meta Llama 3 8B Instruct for robust tool/function calling using the XLAM-60k dataset.
 - Hardware: 2 Nebius nodes, each with 8× NVIDIA H100 (16 GPUs total) interconnected over high-speed networking.
 - Orchestration: Kubeflow PyTorchJob on Kubernetes; shared PV/PVC mounted at `/mnt/data`.
-- Method: QLoRA (4-bit) with TRL SFTTrainer over a unified “function-calling” prompt format; multi-node training via torchrun/Accelerate.
+- Distributed Method: Torchrun over 16 GPUs (2 nodes × 8 GPUs each) as PyTorchJob.
 - Outcome: Successful 1000-step training run across 16 GPUs, runtime ~6,633s (~110.6 min), mean token accuracy peaked around 0.964, final per-step losses ~0.142–0.147. Adapters saved to `/mnt/data/output/llama-3-8b-function-calling` and logged to Weights & Biases.
 
 ## Cluster and topology
@@ -21,7 +21,9 @@
 - Base container image: `nvcr.io/nvidia/pytorch:24.07-py3`
 - Python libs (key pins from `setup_and_data/requirements.txt`):
   - transformers>=4.41.2, trl>=0.8.6, peft>=0.11.1, accelerate>=0.30.1, bitsandbytes>=0.43.1, datasets>=2.19.0, wandb>=0.16.6
-- Training script: `llm_finetune/setup_and_data/train.py`
+- Training script: 
+    - DDP `llm_finetune/setup_and_data/ddp.py`
+    - FSDP - `llm_finetune/setup_and_data/fsdp_no4.py`
 - Launcher: `torchrun` via PyTorchJob (`llm_finetune/code/04-training-job.yaml`)
 - Observability: Weights & Biases (project `func_calls_llm`, entity `iamnirmata-microsoft`)
 

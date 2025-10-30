@@ -1,4 +1,4 @@
-# Reproducibility Guide — AI Assignment 16 (2× Nebius H100 nodes)
+# Reproducibility Guide — Meta Llama 3 Multi-node Fine-tuning 
 
 This guide reproduces the fine-tuning run for Meta Llama 3 8B Instruct on the XLAM-60k function-calling dataset across 2 nodes × 8 GPUs.
 
@@ -10,7 +10,51 @@ This guide reproduces the fine-tuning run for Meta Llama 3 8B Instruct on the X
 - Hugging Face token with access to `meta-llama/Meta-Llama-3-8B-Instruct`
 - Weights & Biases API key (optional but recommended)
 
-## 1) Clone the repository
+## 0) Build Kubernetes cluster
+### 0.1) Follow Nebius documentation to provision a Kubernetes cluster
+![alt text](k8scluster.png)
+
+## 0.2) Create PVC
+![alt text](pvc-3.png)
+
+## 0.3) Assign Node Groups
+- 2 worker nodes, each with 8× NVIDIA H100 GPUs
+- High-speed networking (InfiniBand preferred)
+- RWX storage class for shared Persistent Volume 2TB
+- Storage - 2TB
+- Memory - 3200GB
+![alt text](nodegroup.png)
+
+## 0.4) Setup kubectl and Nebius profile
+![alt text](kubectl_setup.png)
+- install `kubectl` and `nebius` CLI tools
+- configure `kubectl` context to point to your Nebius Kubernetes cluster
+- verify access: federation vs Service Account
+- Install PyTorchJob Operator for Kubeflow
+```bash
+hari@ADG-2MQ50106PK:~/nebius/distrbuted_training_tools$ kubectl config get-contexts
+CURRENT   NAME                          CLUSTER                       AUTHINFO                      NAMESPACE
+*         nebius-mk8s-hari-cluster-04   nebius-mk8s-hari-cluster-04   nebius-mk8s-hari-cluster-04   
+```
+
+## 1) Job submission
+- Create a sleep job to have long-running pods for exec/debugging:
+    - 2 nodes ( 1 master + 1 worker), 8 GPUs each
+```bash
+kubectl apply -f distrbuted_training_tools/llm_finetune/code/sleep.yaml
+#OR create_job.sh
+```
+- Wait for pods to be Running:
+
+![alt text](pods.png)
+
+- Exec into one of the pods
+```bash
+kubectl exec -it llama3-finetune-sleep-job-master-0 -- bash
+kubectl exec -it llama3-finetune-sleep-job-worker-0 -- bash
+```
+
+## 2) Clone the repository
 ```bash
 # on your workstation or an admin pod
 git clone https://github.com/IamNirmata/distrbuted_training_tools.git
@@ -36,53 +80,58 @@ kubectl create secret generic wandb-secret \
   --from-literal=api_key="<WANDB_API_KEY>"
 ```
 
-## 4) Stage model and dataset (option A: in-cluster job)
-Use the one-off job to pre-download assets into `/mnt/data`:
-```bash
-kubectl apply -f code/old/00-prepare-environment.yaml
-kubectl wait --for=condition=complete job/prepare-environment --timeout=30m
-kubectl delete job prepare-environment
-```
-This populates:
-- Model → `/mnt/data/models/Meta-Llama-3-8B-Instruct`
-- Dataset → `/mnt/data/datasets/xlam-function-calling-60k`
+## 4) Setup environment and prefetch data/model
+- 8-pre-launch.sh script performs:
+    - Install dependencies from requirements.txt (0-setup.sh)
+    - Declare env vars ( HF_TOKEN, wandb API key, NCCL, pytorch distributed settings) (0-setup.sh)
+    - Prefetch dataset - xlam-function-calling-60k ( 1-data.sh )
+    - Prefetch base model - meta-llama/Meta-Llama-3-8B-Instruct ( 2-model.sh )
+    - sanity check for data and model paths (8-pre-launch.sh)
+    - sanity check for GPU visibility, NCCL setting, and distributed setup (8-pre-launch.sh)
 
-### Alternative 4B) Stage assets via scripts from a pod (option B)
-If you prefer to run setup inside a long-running pod:
 ```bash
-kubectl apply -f code/sleep.yaml
-# When the master/worker pods are Running, exec into one of them:
-llm_finetune/code/kube-funcs/exec.sh llama3-finetune-sleep-job-master-0 -- bash -lc '
-  cd /workspace/distrbuted_training_tools/llm_finetune/setup_and_data && \
-  bash 0-setup.sh && bash 1-data.sh && bash 2-model.sh'
+bash 8-pre-launch.sh
 ```
+
 
 ## 5) Launch training
-Apply the PyTorchJob that runs torchrun over two pods (8 GPUs each):
+### 5.1) Single node training (for testing) using DDP
+To validate the setup, you can run a single-node training job using DDP with 8 GPUs.
+
 ```bash
-kubectl apply -f code/04-training-job.yaml
+torchrun --nproc_per_node=8 --nnodes=1 --node_rank=0 --master_addr="$MASTER_ADDR" --master_port="$MASTER_PORT" ddp.py
+#OR bash launch.sh can be configured for single node
 ```
-Notes:
-- The YAML uses `torchrun --nproc_per_node=8 --nnodes=2 --node_rank={0,1}` and rendezvous at `llama3-finetune-job-master-0:29500`.
-- It installs Python requirements in both pods and runs `llm_finetune/setup_and_data/train.py`.
+### 5.2) Multi-node training using torchrun FSDP and QLoRA
+
+```bash
+torchrun --nproc_per_node=8 --nnodes=2 --node_rank=0 --master_addr="$MASTER_ADDR" --master_port="$MASTER_PORT" fsdp_no4.py
+```
+
+![alt text](fsdp_training.png)
 
 ## 6) Monitor and logs
-```bash
-# Pods
-kubectl get pods -l job-name=llama3-finetune-job
+- We use wandb for experiment tracking. You can also monitor pod logs directly.
+    - DDP run - https://wandb.ai/iamnirmata-microsoft/func_calls_llm/runs/vdjf68ts?nw=nwuseriamnirmata
+    - FSDP run - https://wandb.ai/iamnirmata-microsoft/func_calls_llm/runs/wixn5rm8?nw=nwuseriamnirmata
 
-# Stream logs from the master (rank 0)
-kubectl logs -f -l job-name=llama3-finetune-job,training-role=master
+![alt text](wandb.png)
+ 
 
-# Check Weights & Biases project: func_calls_llm (entity: iamnirmata-microsoft)
-```
 
 ## 7) Collect artifacts (adapters)
 Adapters are saved under `/mnt/data/output/llama-3-8b-function-calling`.
 Use the helper to tar them to your local machine:
+
 ```bash
-cd code/kube-funcs
-bash download.sh    # creates ./llama3_adapters.tgz locally
+cd `/mnt/data/output/llama-3-8b-function-calling
+```bash
+cd /mnt/data/output/llama-3-8b-function-calling && tar -czvf "llama3_adapters_$(date +%Y%m%d-%H%M%S).tgz" .
+
+```
+- Then kubectl cp to your local machine:
+```bash
+kubectl cp llama3-finetune-job-master-0:/mnt/data/output/llama-3-8b-function-calling/llama3_adapters.tgz .
 ```
 
 ## 8) Load adapters for inference (example)
@@ -117,23 +166,3 @@ with torch.no_grad():
     out = model.generate(**inputs, max_new_tokens=256)
 print(tok.decode(out[0], skip_special_tokens=False))
 ```
-
-## 9) Configuration knobs
-- Data/model paths via env (defaults in `train.py`):
-  - `MODEL_PATH`, `DATASET_PATH`, `OUTPUT_DIR`
-- Enable FlashAttention2: set `USE_FLASH_ATTENTION=1`
-- Adjust batch size and accumulation depending on memory headroom
-- NCCL tuning: if your NIC differs, update `NCCL_SOCKET_IFNAME` and (optionally) `NCCL_IB_HCA`
-
-## Troubleshooting tips
-- If rendezvous fails: ensure Master pod DNS `llama3-finetune-job-master-0` resolves in cluster and port 29500 is open in pod
-- If OOM: lower per-device batch size or increase gradient accumulation; ensure LoRA + 4-bit config is intact
-- If IB/NVLink issues: temporarily set `NCCL_IB_DISABLE=1` to fall back to TCP sockets for isolation tests
-
-## Reference files
-- Storage: `code/pvc.yaml`
-- Prepare assets: `code/old/00-prepare-environment.yaml`
-- Training job: `code/04-training-job.yaml`
-- Training script: `setup_and_data/train.py`
-- Setup scripts: `setup_and_data/0-setup.sh`, `1-data.sh`, `2-model.sh`, `8-pre-launch.sh`, `9-launch.sh`
-- Helpers: `code/kube-funcs/*.sh`
